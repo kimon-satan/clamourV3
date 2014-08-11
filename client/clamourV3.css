@@ -1,0 +1,40 @@
+/* CSS declarations go here */
+
+@font-face {
+    font-family: computer;
+    src: url(256bytes.ttf);
+}
+
+
+body{
+
+	font-family: "Helvetica", sans-serif;
+
+}
+
+h1{
+
+	font-size: 40px;
+
+}
+
+
+.tbSpacer{
+	margin: 10px 0; 
+}
+
+#numberBox{
+
+	display: block;
+	background-color: gray;
+	text-decoration: none;
+	color: #000;
+
+}
+
+#num{
+
+	font-size: 200px;
+	font-style: normal;
+
+}

@@ -1,0 +1,72 @@
+<head>
+  <title>Clamour</title>
+  <meta name="viewport" content="minimal-ui width=device-width, initial-scale=1, maximum-scale=1">
+</head>
+
+<body>
+
+	<div class="container text-center">
+		{{#if currentUser}}
+		  {{#if isSu}}
+		  	{{>su}}
+		  {{else}}
+		  	{{>clamour}}
+		  {{/if}}
+		{{else}}
+			{{#if isSuLogin}}
+				{{>helloSu}}
+			{{else}}
+		  		{{>hello}}
+		  	{{/if}}
+		{{/if}}
+	</div>
+
+</body>
+
+<template name="hello">
+
+	<h1>Clamour</h1>
+
+	<a href="#" id="play" class="btn btn-lg btn-success tbSpacer">Play</a>
+
+</template>
+
+<template name="helloSu">
+
+	<h1>Clamour Login</h1>
+
+	<form role="form">
+		<label for="username">Username: </label>
+		<input id="username" class="form-control" type="text" placeholder="username">
+		<label for="password">Password: </label>
+		<input id="password" class="form-control" type="password" placeholder="password">
+
+		<a href="#" id="login" class="btn btn-lg btn-success tbSpacer">Login</a>
+	</form>
+
+</template>
+
+
+<template name="su">
+
+	<h1>Su</h1>
+
+	<form role="form">
+		<a href="#" id="resetAll" class="btn btn-lg btn-danger tbSpacer">resetAll</a>
+		<a href="#" id="replay" class="btn btn-lg btn-success tbSpacer">replay</a>
+	</form>
+
+</template>
+
+
+<template name="clamour">
+		
+  <h1>Clamour</h1>
+  
+  <a href= "#" id="numberBox">
+  	<div id="num">{{currNumber}}</div>
+  </a>
+
+</template>
+
+
