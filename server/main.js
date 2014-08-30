@@ -66,7 +66,7 @@ Meteor.methods({
 
 		var buf = osc.toBuffer({
 			address: "/hit",
-			args: [num, 'peterUK', 0.5, 0]
+			args: [num, 'peterUK', 0.1, 0]
 	  	});
 
 	  	udp.send(buf, 0, buf.length, port, host);
