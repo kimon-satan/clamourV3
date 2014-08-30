@@ -60,7 +60,7 @@ msgStream.permissions.read(function() {
 
 Meteor.methods({
 
-	numPing:function(num) {
+	numPing:function(num) { // this will need revising for the new SC model
 
 		//console.log(num);
 
