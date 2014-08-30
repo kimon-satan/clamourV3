@@ -1,4 +1,5 @@
 msgStream = new Meteor.Stream('msgStream');
+var buttonPressed = false;
 
 Template.clamour.created = function(){
 	Session.set('currNumber', 10);
@@ -18,7 +19,7 @@ Template.hello.events({
 
 Template.clamour.events({
   
-  'touchstart #numberBox, click #numberBox': function (e) {
+  /*'touchstart #numberBox, click #numberBox': function (e) {
 
   	var cn = Session.get('currNumber');
   	cn = Math.max(1, cn - 1);
@@ -26,6 +27,27 @@ Template.clamour.events({
   	$('#numberBox').css('background-color', randCol());
   	Meteor.call('numPing', cn);
   	e.preventDefault();
+  }*/
+
+  'touchstart #numberBox, click #numberBox': function (e) {
+
+    if(buttonPressed)return;
+    buttonPressed = true;
+    var cn = Session.get('currNumber');
+    $('#numberBox').addClass('fade');
+    Meteor.call('numPing', cn);
+
+    setTimeout(function(){
+
+      buttonPressed = false;
+      cn = Math.max(1, cn - 1);
+      Session.set('currNumber', cn);
+      $('#numberBox').removeClass('fade');
+      $('#numberBox').css('opacity', 0.25);
+
+    },610);
+   
+    e.preventDefault();
   }
 
 });
