@@ -62,11 +62,11 @@ Meteor.methods({
 
 	numPing:function(num) { // this will need revising for the new SC model
 
-		//console.log(num);
+		console.log(num);
 
 		var buf = osc.toBuffer({
-			address: "/numPing",
-			args: [num]
+			address: "/hit",
+			args: [num, 'peterUK', 0.5, 0]
 	  	});
 
 	  	udp.send(buf, 0, buf.length, port, host);
