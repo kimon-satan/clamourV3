@@ -33,7 +33,8 @@ Template.su.created = function(){
   numPlayers = 1;
   isAllPlayers = false;
 
-  Meteor.subscribe("SelectedUsers", Meteor.user()._id);
+
+  Meteor.subscribe("UserData", Meteor.user()._id);
   Meteor.subscribe("AllPlayers", Meteor.user()._id);
 
 
@@ -61,17 +62,10 @@ Template.su_players.events({
     e.preventDefault();
   },
 
-  'click #reselect':function(e){
 
-    selectSomePlayers();
-    e.preventDefault();
-  },
+  'change #allPlayers, click #reselect':function(e){
 
-
-  'change #allPlayers':function(e){
-    isAllPlayers = $('#allPlayers').prop('checked');
-
-    if(isAllPlayers){
+    if($('#allPlayers').prop('checked')){
       selectAllPlayers();
     }else{
       selectSomePlayers();
@@ -82,14 +76,15 @@ Template.su_players.events({
 
 });
 
-Template.su_players.selectedPlayers = function(){return SelectedUsers.find({})}
+Template.su_players.selectedPlayers = function(){
+  return UserData.find({isSelected: true}).fetch();
+}
 
 function selectAllPlayers(){
 
-   SelectedUsers.find().forEach(function(e){SelectedUsers.remove(e._id)});
 
     Meteor.users.find({'profile.role': "player"}).forEach(function(e){
-      SelectedUsers.insert({uid: e._id});
+      UserData.update(e._id,{$set: {isSelected: true}});
     });
 
 }
@@ -98,7 +93,7 @@ function selectSomePlayers(){
 
   var uids = [];
 
-   SelectedUsers.find().forEach(function(e){SelectedUsers.remove(e._id)});
+   UserData.find().forEach(function(e){UserData.update(e._id, {$set: {isSelected: false}})});
 
   Meteor.users.find({'profile.role': "player"}).forEach(function(e){
     uids.push(e._id);
@@ -108,9 +103,8 @@ function selectSomePlayers(){
 
   var numPlayers = Math.min(uids.length , $('#numPlayers').val());
 
-
   for(var i = 0; i < numPlayers; i++){
-    SelectedUsers.insert({uid: uids[i]});
+    UserData.update(uids[i], {$set: {isSelected: true}});
   }
 
 }
@@ -159,6 +153,7 @@ Template.su_numbers.events({
   
 
       msgStream.emit('message', {type: 'screenChange', 'value' : 'numbers'});
+      msgStream.emit('message', {type: 'numbersReset'});
 
   }
 

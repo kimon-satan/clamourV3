@@ -24,16 +24,20 @@ Accounts.onCreateUser(function(options, user){
 		user.profile = {role: 'admin'};
 	}else{
 		user.profile = {role: 'player'};
+		console.log(user);
+		UserData.insert({ _id: user._id, view: 'wait', isSelected: false});
 	}
 
 	return user;
 });
 
 
-Meteor.publish('SelectedUsers', function(userId){
+Meteor.publish('UserData', function(userId){
 	if(checkAdmin(userId)){
 		this.ready();
-		return SelectedUsers.find({}); 
+		return UserData.find({}); 
+	}else{
+		return UserData.find(userId); 
 	}
 });
 
@@ -61,15 +65,17 @@ msgStream.permissions.write(function() {
 
 msgStream.permissions.read(function(eventName, args) {
 
-	//console.log(this.userId);
+	 var ud = UserData.findOne(this.userId, {fields: {isSelected: 1}});
 
- if(SelectedUsers.findOne({uid: this.userId})){
- 	//console.log(this.userId, eventName , args);
- 	return true;
- }else{
- 	//console.log( this.userId , " not found");
- 	return false;
- }
+	 if(ud){
+		 if(ud.isSelected){
+		 	//console.log(this.userId, eventName , args);
+		 	return true;
+		 }else{
+		 	//console.log( this.userId , " not found");
+		 	return false;
+		 }
+	}
 
 },false);
 

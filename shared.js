@@ -1,18 +1,18 @@
-SelectedUsers = new Meteor.Collection('SelectedUsers');
+UserData = new Meteor.Collection('UserData');
 
-SelectedUsers.allow({
+UserData.allow({
 
-	update: adminTest,
-	insert: adminTest,
-	remove: adminTest
+	update: adminOwnerTest,
+	insert: adminOwnerTest,
+	remove: adminOwnerTest
 
 });
 
-SelectedUsers.deny({
+UserData.deny({
 
-	update: function(user){return !adminTest(user);},
-	insert: function(user){return !adminTest(user);},
-	remove: function(user){return !adminTest(user);}	
+	update: function(user, doc){return !adminOwnerTest(user, doc);},
+	insert: function(user, doc){return !adminOwnerTest(user, doc);},
+	remove: function(user, doc){return !adminOwnerTest(user, doc);}	
 });
 
 
@@ -40,5 +40,16 @@ function adminTest(user){
 		return true;
 	}else{
 		return false;
+	}
+}
+
+function adminOwnerTest(user, doc){
+
+	var role = Meteor.users.findOne(user).profile.role;
+	
+	if(role == 'admin'){
+		return true;
+	}else{
+		return (doc._id == user);
 	}
 }

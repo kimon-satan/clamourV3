@@ -18,8 +18,11 @@ Template.hello.events({
 
 
 Template.clamour.created = function(){
-  Session.set('currNumber', 10);
-  Session.set('screenMode', 'numbers');
+  
+  Meteor.subscribe("UserData", Meteor.user()._id, function(){
+      Session.set('screenMode', UserData.findOne(Meteor.user()._id, {fields: {view: 1}}).view);
+  });
+
 }
 
 Template.clamour.screenMode = function(){return Session.get('screenMode');}
@@ -63,7 +66,10 @@ msgStream.on('message', function(message){
 
 
   if(message.type == 'numbersReset')Session.set('currNumber' , 10);
-  if(message.type == 'screenChange'){ Session.set('screenMode', message.value);}
+  if(message.type == 'screenChange'){ 
+    Session.set('screenMode', message.value);
+    UserData.update(Meteor.user()._id, {$set: {view: Session.get('screenMode')}});
+  }
   if(message.type == 'updateChat'){ Session.set('chatText', message.value);}
 
 });

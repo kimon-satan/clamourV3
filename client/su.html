@@ -62,12 +62,16 @@
 
 			<h4>Selected Players</h4>
 
-			<table class="table table-striped table-condensed">
-				  <tr>
-				    <th>id</th>
-				  </tr>
+			<table class="table table-striped">
+			  <thead>
+			    <th>id</th>
+			    <th>view</th>
+			  </thead>
 				{{#each selectedPlayers}}
-					<tr><td>{{this.uid}}</td></tr>
+					<tr>
+						<td>{{this._id}}</td>
+						<td>{{this.view}}</td>
+					</tr>
 				{{/each}}
 			</table>
 
