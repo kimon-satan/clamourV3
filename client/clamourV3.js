@@ -56,12 +56,15 @@ Template.numbers.events({
 
 Template.numbers.currNumber = function(){return Session.get('currNumber');}
 
+Template.chat.chatText = function(){return Session.get('chatText');}
+
 
 msgStream.on('message', function(message){
 
 
   if(message.type == 'numbersReset')Session.set('currNumber' , 10);
-  if(message.type == 'screenChange'){ Session.set('screenMode', 'chat');}
+  if(message.type == 'screenChange'){ Session.set('screenMode', message.value);}
+  if(message.type == 'updateChat'){ Session.set('chatText', message.value);}
 
 });
 

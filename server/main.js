@@ -29,6 +29,14 @@ Accounts.onCreateUser(function(options, user){
 	return user;
 });
 
+
+Meteor.publish('SelectedUsers', function(userId){
+	if(checkAdmin(userId)){
+		this.ready();
+		return SelectedUsers.find({}); 
+	}
+});
+
 Meteor.publish('AllPlayers', function(userId){
 	if(checkAdmin(userId)){
 		this.ready();
@@ -51,9 +59,13 @@ msgStream.permissions.write(function() {
 
 });
 
-msgStream.permissions.read(function() {
+msgStream.permissions.read(function(eventName, args) {
+ console.log(this.userId, eventName , args);
+
   return true;
 });
+
+
 
 
 

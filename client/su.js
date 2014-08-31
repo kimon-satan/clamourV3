@@ -1,9 +1,13 @@
 
-var isChat; // might become session
+var isChat;
+var numPlayers;
+var isAllPlayers;
 
 
 UI.registerHelper('isSu', function(){ return Meteor.user().profile.role == 'admin';});
 UI.registerHelper('isSuLogin', function(){ return Session.get('isAdmin')});
+
+Meteor.subscribe("SelectedUsers");
 
 Template.helloSu.events({
 
@@ -26,6 +30,8 @@ Template.helloSu.events({
 Template.su.created = function(){
 
   isChat = false;
+  numPlayers = 1;
+  isAllPlayers = false;
 
   Meteor.defer(function(){
 
@@ -63,6 +69,7 @@ Template.su.events({
 
   'keyup #chatText':function(e){
     if(isChat){
+      msgStream.emit('message', {type: 'updateChat', 'value':  $('#chatText').val()});
       console.log( isChat + "," + $('#chatText').val());
     }
   },
@@ -72,6 +79,7 @@ Template.su.events({
     $('#chatText').val("");
     if(isChat){
       msgStream.emit('message', {type: 'screenChange', 'value' : 'chat'});
+      msgStream.emit('message', {type: 'updateChat', 'value':  $('#chatText').val()});
     }
   }
 

@@ -1,3 +1,19 @@
+SelectedUsers = new Meteor.Collection('SelectedUsers');
+
+SelectedUsers.allow({
+
+	update: adminTest,
+	insert: adminTest,
+	remove: adminTest
+
+});
+
+SelectedUsers.deny({
+
+	update: function(user){return !adminTest(user);},
+	insert: function(user){return !adminTest(user);},
+	remove: function(user){return !adminTest(user);}	
+});
 
 
 Meteor.users.allow({
