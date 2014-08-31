@@ -103,9 +103,10 @@ Meteor.methods({
 
 		if(checkAdmin(userId)){
 
-			SelectedUsers.find({}).forEach(function(e){
+			UserData.find({isSelected: true}).forEach(function(e){
 
-				Meteor.users.remove(e.uid);
+				Meteor.users.remove(e._id);
+				UserData.remove(e._id);
 
 			});
 			
