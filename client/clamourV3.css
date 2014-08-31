@@ -58,6 +58,10 @@ input[type='checkbox']:checked {
 	margin: 10px 0; 
 }
 
+.lrSpacer{
+	margin: 0px 10px; 
+}
+
 #numberBox{
 
 	opacity: 0.25;

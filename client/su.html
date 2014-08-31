@@ -18,17 +18,88 @@
 
 	<h1>Clamour Admin</h1>
 
+	<div class="col-md-6">
 
+		{{>su_chat}}
+
+		{{>su_numbers}}
+
+
+	</div>
 
 	<div class="col-md-6">
 
-		<!-- ....................... chat ................... -->
+		{{>su_players}}
+
+	</div>
+
+
+</template>
+
+
+<template name ="su_players">
+
+	<div class="panel panel-default">
+		<div class="panel-body">
+			<h2>Players</h2>
+			<form role="form">
+				<div>
+					<a href="#" id="resetPlayers" class="btn btn-lg btn-danger tbSpacer">reset</a>
+				</div>
+				<label for="numPlayers">Number of players</label>
+				<input id="numPlayers" type = "number" min="1" max="200" value="1">
+
+				<a href="#" id="reselect" class="btn btn-sm btn-success lrSpacer">reselect</a>
+
+				<label for="allPlayers">all players</label>
+				<input id="allPlayers" type="checkbox">
+
+
+
+			</form>
+
+			<br/><br/>
+
+			<h4>Selected Players</h4>
+
+			<table class="table table-striped table-condensed">
+				  <tr>
+				    <th>id</th>
+				  </tr>
+				{{#each selectedPlayers}}
+					<tr><td>{{this.uid}}</td></tr>
+				{{/each}}
+			</table>
+
+		</div>
+	</div>
+
+
+
+</template>
+
+<template name= "su_numbers">
+			<!-- ....................... numbers ................... -->
+		<div class="panel panel-default">
+			<div class="panel-body">
+				<h2>numbers</h2>
+				<div>
+					<a href="#" id="numbersInit" class="btn btn-sm btn-warning tbSpacer">init</a>
+				</div>
+				<a href="#" id="replay" class="btn btn-lg btn-success tbSpacer">replay</a>
+			</div>
+		</div>
+</template>
+
+<template name = "su_chat">
+			<!-- ....................... chat ................... -->
 
 		<div class="panel panel-default">
 			<div class="panel-body">
 				<h2>chat</h2>
-				<label for="chatBox">Turn on chat</label>
-				<input id="chatBox" type="checkbox">
+				<div>
+					<a href="#" id="chatInit" class="btn btn-sm btn-warning tbSpacer">init</a>
+				</div>
 
 				<div class="row">
 					<form role="form">
@@ -42,44 +113,5 @@
 
 			</div>
 		</div>
-
-		<!-- ....................... numbers ................... -->
-		<div class="panel panel-default">
-			<div class="panel-body">
-				<h2>numbers</h2>
-				<div>
-					<label for="numbersBox">Turn on numbers</label>
-					<input id="numbersBox" type="checkbox">
-				</div>
-				<a href="#" id="replay" class="btn btn-lg btn-success tbSpacer">replay</a>
-			</div>
-		</div>
-
-
-	</div>
-
-	<div class="col-md-6">
-
-		<div class="panel panel-default">
-			<div class="panel-body">
-				<h2>Players</h2>
-				<form role="form">
-					<div>
-						<a href="#" id="resetAll" class="btn btn-lg btn-danger tbSpacer">reset</a>
-					</div>
-					<label for="numPlayers">Number of players</label>
-					<input id="numPlayers" type = "number" min="1" max="200" value="1">
-
-					<label for="allPlayers">all players</label>
-					<input id="allPlayers" type="checkbox">
-
-				</form>
-			</div>
-		</div>
-
-
-	</div>
-
-
-
 </template>
+

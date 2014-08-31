@@ -60,10 +60,18 @@ msgStream.permissions.write(function() {
 });
 
 msgStream.permissions.read(function(eventName, args) {
- console.log(this.userId, eventName , args);
 
-  return true;
-});
+	//console.log(this.userId);
+
+ if(SelectedUsers.findOne({uid: this.userId})){
+ 	//console.log(this.userId, eventName , args);
+ 	return true;
+ }else{
+ 	//console.log( this.userId , " not found");
+ 	return false;
+ }
+
+},false);
 
 
 
@@ -85,11 +93,16 @@ Meteor.methods({
 		
 	},
 
-	resetAllPlayers:function(userId){
+	resetPlayers:function(userId){
 
 		if(checkAdmin(userId)){
 
-			Meteor.users.remove({'profile.role':'player'});
+			SelectedUsers.find({}).forEach(function(e){
+
+				Meteor.users.remove(e.uid);
+
+			});
+			
 		}
 
 
