@@ -1,4 +1,7 @@
 
+var isChat; // might become session
+
+
 UI.registerHelper('isSu', function(){ return Meteor.user().profile.role == 'admin';});
 UI.registerHelper('isSuLogin', function(){ return Session.get('isAdmin')});
 
@@ -20,11 +23,23 @@ Template.helloSu.events({
 
 });
 
+Template.su.created = function(){
+
+  isChat = false;
+
+  Meteor.defer(function(){
+
+    $('#chatText').val("");
+
+  });
+
+}
+
 Template.su.events({
 
   'click #replay':function(e){
 
-    msgStream.emit('message', "reset");
+    msgStream.emit('message', {type: 'numbersReset'});
     e.preventDefault();
   },
 
@@ -36,6 +51,30 @@ Template.su.events({
 
   	};
   	e.preventDefault();
+  },
+
+  'click #chatClear':function(e){
+
+    $('#chatText').val("");
+    e.preventDefault();
+
+  },
+
+
+  'keyup #chatText':function(e){
+    if(isChat){
+      console.log( isChat + "," + $('#chatText').val());
+    }
+  },
+
+  'change #chatBox':function(e){
+    isChat = $('#chatBox').prop('checked');
+    $('#chatText').val("");
+    if(isChat){
+      msgStream.emit('message', {type: 'screenChange', 'value' : 'chat'});
+    }
   }
+
+
 
 });

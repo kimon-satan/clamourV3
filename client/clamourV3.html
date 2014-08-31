@@ -49,19 +49,67 @@
 
 <template name="su">
 
-	<h1>Su</h1>
+	<h1>Clamour Admin</h1>
 
-	<form role="form">
-		<a href="#" id="resetAll" class="btn btn-lg btn-danger tbSpacer">resetAll</a>
-		<a href="#" id="replay" class="btn btn-lg btn-success tbSpacer">replay</a>
-	</form>
+	<div class="row">
+
+	<div class="col-md-6">
+		<div>
+			<label for="chatBox">Turn on chat</label>
+			<input id="chatBox" type="checkbox">
+		</div>
+		<div class="row">
+		<form role="form">
+			<textarea id="chatText" rows="4" cols="50">
+
+			</textarea>
+			
+		</form>
+		</div>
+		<a href="#" id="chatClear" class="btn btn-sm btn-danger tbSpacer">clear text</a>
+	</div>
+
+	<div class="col-md-6">
+		<form role="form">
+			<a href="#" id="resetAll" class="btn btn-lg btn-danger tbSpacer">resetAll</a>
+			<a href="#" id="replay" class="btn btn-lg btn-success tbSpacer">replay</a>
+		</form>
+
+	</div>
+
+	</div>
+
+
 
 </template>
 
 
 <template name="clamour">
-		
-  <h1>Clamour</h1>
+	
+	{{#if isScreen 'wait'}}
+		{{>wait}}
+	{{/if}}
+
+	{{#if isScreen 'chat'}}
+		{{>chat}}
+	{{/if}}
+
+  	{{#if isScreen 'numbers'}}
+		{{>numbers}}
+	{{/if}}
+
+</template>
+
+<template name="wait">
+	<h1>wait</h1>
+</template>
+
+<template name="chat">
+	<h1>chat</h1>
+</template>
+
+
+<template name="numbers">
   
   <a href= "#" id="numberBox">
   	<div id="num">{{currNumber}}</div>

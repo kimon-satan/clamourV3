@@ -1,9 +1,8 @@
 msgStream = new Meteor.Stream('msgStream');
 var buttonPressed = false;
 
-Template.clamour.created = function(){
-	Session.set('currNumber', 10);
-}
+
+
 
 Template.hello.events({
 
@@ -17,17 +16,20 @@ Template.hello.events({
 });
 
 
-Template.clamour.events({
-  
-  /*'touchstart #numberBox, click #numberBox': function (e) {
 
-  	var cn = Session.get('currNumber');
-  	cn = Math.max(1, cn - 1);
-  	Session.set('currNumber', cn);
-  	$('#numberBox').css('background-color', randCol());
-  	Meteor.call('numPing', cn);
-  	e.preventDefault();
-  }*/
+Template.clamour.created = function(){
+  Session.set('currNumber', 10);
+  Session.set('screenMode', 'numbers');
+}
+
+Template.clamour.screenMode = function(){return Session.get('screenMode');}
+
+Template.clamour.isScreen = function(mode){
+  return (Session.get('screenMode') == mode);
+}
+
+Template.numbers.events({
+  
 
   'touchstart #numberBox, click #numberBox': function (e) {
 
@@ -52,12 +54,14 @@ Template.clamour.events({
 
 });
 
-Template.clamour.currNumber = function(){return Session.get('currNumber');}
+Template.numbers.currNumber = function(){return Session.get('currNumber');}
 
 
 msgStream.on('message', function(message){
 
-  if(message == 'reset')Session.set('currNumber' , 10);
+
+  if(message.type == 'numbersReset')Session.set('currNumber' , 10);
+  if(message.type == 'screenChange'){ Session.set('screenMode', 'chat');}
 
 });
 
