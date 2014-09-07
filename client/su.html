@@ -26,6 +26,7 @@
 
 		{{>su_onOff}}
 
+		<br/><br/><br/><br/><br/>
 
 	</div>
 
@@ -138,20 +139,7 @@
 
 				<div>
 				
-					<span class="dropdown lrSpacer">
-						<label>voice selector: </label>
-					  <button class="btn btn-default dropdown-toggle" type="button" id="voiceSelector" data-toggle="dropdown">
-					   	{{currentVoice}}
-					    <span class="caret"></span>
-					  </button>
-					  <ul class="dropdown-menu" role="menu" aria-labelledby="voiceSelector">
-					    
-					  	{{#each voices}}
-					    <li><a role="menuitem" class="voiceItem" href="#" id="{{this}}">{{this}}</a></li>
-					    {{/each}}
-
-					  </ul>
-					</span>
+					{{>su_voiceSelector panel='numbers'}}
 					<a href="#" id="randVoices" class="btn btn-sm btn-default tbSpacer">randomVoices</a>
 
 				</div>
@@ -208,11 +196,31 @@
 				<a href="#" id="addOn" class="btn btn-sm btn-success tbSpacer">new on</a>
 				<a href="#" id="addOff" class="btn btn-sm btn-danger tbSpacer">new off</a>
 			</div>
+
+			{{>su_voiceSelector panel='onOff'}}
 		</div>
 	</div>
 </template>
 
+
+
 <template name= "su_voiceSelector">
+				
+	<span class="dropdown lrSpacer">
+		<label>voice selector: </label>
+	  <button class="btn btn-default dropdown-toggle" type="button" id="voiceSelector" data-toggle="dropdown">
+	   	{{currentVoice}}
+	    <span class="caret"></span>
+	  </button>
+	  <ul class="dropdown-menu" role="menu" aria-labelledby="voiceSelector">
+	    
+	  	{{#each voices}}
+	    <li><a role="menuitem" class="voiceItem {{../panel}}" href="#" id="{{this}}">{{this}}</a></li>
+	    {{/each}}
+
+	  </ul>
+	</span>
+	
 
 </template>
 

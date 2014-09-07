@@ -170,11 +170,7 @@ Template.su_chat.events({
 
 });
 
-Template.su_numbers.voices = function(){
-  return voices;
-}
 
-Template.su_numbers.currentVoice = function(){return Session.get("currentVoice")}
 
 Template.su_numbers.events({
 
@@ -252,19 +248,7 @@ Template.su_numbers.events({
 
 
 
-'click .voiceItem':function(e){
 
-  if(isRandomVoice){
-      isRandomVoice = false;
-      $('#randVoices').addClass('btn-default');
-      $('#randVoices').removeClass('btn-primary');
-  }
-  Session.set("currentVoice", e.currentTarget.id);
-  var options = {voice: e.currentTarget.id, isRandomVoice: false};
-  options = checkSendAll(options);
-  msgStream.emit('message', {type: 'numbersChange', 'value': options});
-  e.preventDefault();
-}
 
 
 
@@ -304,6 +288,55 @@ Template.su_onOff.events({
 
       msgStream.emit('message', {type: 'screenChange', 'value' : 'onOff'});
       e.preventDefault();
+  },
+
+  'click #addOn':function(e){
+
+    msgStream.emit('message', {type: 'addOn', 'value' : 'on'});
+    e.preventDefault();
+  },
+
+  'click #addOff':function(e){
+
+    msgStream.emit('message', {type: 'addOff', 'value' : 'off'});
+    e.preventDefault();
   }
 
 });
+
+Template.su_voiceSelector.voices = function(){
+  return voices;
+}
+
+Template.su_voiceSelector.currentVoice = function(){return Session.get("currentVoice")}
+
+Template.su_voiceSelector.events({
+
+  'click .voiceItem':function(e){
+
+    if($(e.currentTarget).hasClass('numbers'))numbersVoiceSel(e);
+    if($(e.currentTarget).hasClass('onOff'))onOffVoiceSel(e);
+
+    e.preventDefault();
+  }
+
+
+});
+
+
+function numbersVoiceSel(e){
+    if(isRandomVoice){
+        isRandomVoice = false;
+        $('#randVoices').addClass('btn-default');
+        $('#randVoices').removeClass('btn-primary');
+    }
+    Session.set("currentVoice", e.currentTarget.id);
+    var options = {voice: e.currentTarget.id, isRandomVoice: false};
+    options = checkSendAll(options);
+    msgStream.emit('message', {type: 'numbersChange', 'value': options});
+
+}
+
+function onOffVoiceSel(e){
+
+}

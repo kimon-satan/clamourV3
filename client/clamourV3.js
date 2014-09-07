@@ -11,7 +11,7 @@ var numbersOptions = {
   amp: 0.5,
   pan: 0,
   volume: 0.2,
-  fadeTime: 0.6,
+  fadeTime: 0.5,
   voice: 'peterUK',
   isRandomVoice: false
 
@@ -42,6 +42,9 @@ Template.clamour.created = function(){
 
   Session.set('voice', numbersOptions.voice);
 
+  var oo = {isOnButton: false, isOffButton: false};
+  Session.set("onOffButtons", oo);
+
 }
 
 Template.clamour.screenMode = function(){return Session.get('screenMode');}
@@ -51,7 +54,7 @@ Template.clamour.isScreen = function(mode){
   return (Session.get('screenMode') == mode);
 }
 
-Template.numbers.voice = function(){return Session.get("voice")}
+UI.registerHelper('voice', function(){return Session.get("voice")});
 
 Template.numbers.events({
   
@@ -124,6 +127,9 @@ Template.numbers.currNumber = function(){return Session.get('currNumber');}
 
 Template.chat.chatText = function(){return Session.get('chatText');}
 
+Template.onOff.isOnButton = function(){return Session.get('onOffButtons').isOnButton;}
+Template.onOff.isOffButton = function(){return Session.get('onOffButtons').isOffButton;}
+
 
 msgStream.on('message', function(message){
 
@@ -145,6 +151,22 @@ msgStream.on('message', function(message){
   if(message.type == 'screenChange'){ 
     Session.set('screenMode', message.value);
     UserData.update(Meteor.user()._id, {$set: {view: Session.get('screenMode')}});
+  }
+
+  if(message.type == 'addOn'){
+
+    var oo = Session.get('onOffButtons');
+    oo.isOnButton = true;
+    Session.set('onOffButtons', oo);
+
+  }
+
+  if(message.type == 'addOff'){
+
+    var oo = Session.get('onOffButtons');
+    oo.isOffButton = true;
+    Session.set('onOffButtons', oo);
+
   }
 
   if(message.type == 'updateChat'){ Session.set('chatText', message.value);}

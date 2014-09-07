@@ -98,9 +98,28 @@ input[type='checkbox']:checked {
 
 }
 
+#onBox, #offBox{
+
+    display: block;
+    opacity: 0.35;
+    text-decoration: none;
+    color: #000;
+    margin-top: 20px;
+
+}
+
+#onBox{
+    background: green;
+}
+
+#offBox{
+    background: red;
+}
+
+
 #numberBox{
 
-	opacity: 0.25;
+
 	display: block;
 	background: white;
 	text-decoration: none;
@@ -113,5 +132,12 @@ input[type='checkbox']:checked {
 
 	font-size: 200px;
 	font-style: normal;
+
+}
+
+.bigText{
+
+    font-size: 125px;
+    font-style: normal;
 
 }

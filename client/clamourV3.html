@@ -72,12 +72,24 @@
 </template>
 
 <template name="onOff">
-  <h1>on/off</h1>
-  {{#if isOnButton}}
-  {{/if}}
 
-  {{#if isOffButton}}
-  {{/if}}
+	<div class="row">
+		<div class="col-sm-6">
+		  {{#if isOnButton}}
+		  <a href= "#" id="onBox">
+		  	<div id="on" class="{{voice}} bigText">on</div>
+		  </a>
+		  {{/if}}
+		</div>
+
+		<div class="col-sm-6">
+		  {{#if isOffButton}}
+		  <a href= "#" id="offBox">
+		  	<div id="off" class="{{voice}} bigText">off</div>
+		  </a>
+		  {{/if}}
+		</div>
+	</div>
 
 </template>
 
