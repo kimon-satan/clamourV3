@@ -42,10 +42,11 @@
 	<div class="panel panel-default">
 		<div class="panel-body">
 			<h2>Players</h2>
-			<form role="form">
-				<div>
-					<a href="#" id="resetPlayers" class="btn btn-lg btn-danger tbSpacer">reset</a>
-				</div>
+			<div class ="text-left">
+			<form role="form" class="form-inline">
+				
+				<a href="#" id="resetPlayers" class="btn btn-lg btn-danger tbSpacer">logout all</a>
+				
 				<label for="numPlayers">Number of players</label>
 				<input id="numPlayers" type = "number" min="1" max="200" value="1">
 
@@ -54,13 +55,35 @@
 				<label for="allPlayers">all players</label>
 				<input id="allPlayers" type="checkbox">
 
+				<br/><br/>
 
+
+				
+				<span class="dropdown lrSpacer">
+				<label>mode filter: </label>
+				  <button class="btn btn-default dropdown-toggle" type="button" id="modeFilter" data-toggle="dropdown">
+				    {{currentMode}}
+				    <span class="caret"></span>
+				  </button>
+				  <ul class="dropdown-menu" role="menu" aria-labelledby="modeFilter">
+				    
+				  	{{#each playerModes}}
+				    <li><a role="menuitem" class="filterItem" href="#" id="{{this}}">{{this}}</a></li>
+				    {{/each}}
+
+				  </ul>
+				</span>
+
+				<label for="invert">Invert selection: </label>
+				<input type="checkbox" id="invert">
+		
 
 			</form>
+		</div>
 
-			<br/><br/>
+		
 
-			<h4>Selected Players</h4>
+			<h4>Players</h4>
 
 			<table class="table table-striped">
 			  <thead>
@@ -68,10 +91,17 @@
 			    <th>view</th>
 			  </thead>
 				{{#each selectedPlayers}}
+					{{#if this.isSelected}}
+					<tr class="selected">
+						<td>{{this._id}}</td>
+						<td>{{this.view}}</td>
+					</tr>
+					{{else}}
 					<tr>
 						<td>{{this._id}}</td>
 						<td>{{this.view}}</td>
 					</tr>
+					{{/if}}
 				{{/each}}
 			</table>
 

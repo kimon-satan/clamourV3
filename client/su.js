@@ -1,5 +1,4 @@
 
-var isChat;
 var numPlayers;
 var isAllPlayers;
 
@@ -29,14 +28,13 @@ Template.helloSu.events({
 
 Template.su.created = function(){
 
-  isChat = false;
   numPlayers = 1;
   isAllPlayers = false;
-
 
   Meteor.subscribe("UserData", Meteor.user()._id);
   Meteor.subscribe("AllPlayers", Meteor.user()._id);
 
+  Session.set("currentMode", "chat");
 
   Meteor.defer(function(){
 
@@ -71,14 +69,27 @@ Template.su_players.events({
       selectSomePlayers();
     }
 
+  },
 
+  'click .filterItem':function(e){
+
+    Session.set("currentMode", e.currentTarget.id);
+    e.preventDefault();
   }
+
+
 
 });
 
-Template.su_players.selectedPlayers = function(){
-  return UserData.find({isSelected: true}).fetch();
+Template.su_players.playerModes = function(){
+  return ["numbers" , "chat", "onOff", "none"];
 }
+
+Template.su_players.selectedPlayers = function(){
+  return UserData.find({},{sort: {isSelected: -1}}).fetch();
+}
+
+Template.su_players.currentMode = function(){return Session.get("currentMode")}
 
 function selectAllPlayers(){
 
@@ -92,16 +103,30 @@ function selectAllPlayers(){
 function selectSomePlayers(){
 
   var uids = [];
+  var invert = $('#invert').prop('checked');
 
    UserData.find().forEach(function(e){UserData.update(e._id, {$set: {isSelected: false}})});
 
-  Meteor.users.find({'profile.role': "player"}).forEach(function(e){
+  var searchObj = {};
+
+  if(Session.get("currentMode")!= "none"){
+
+    if(!$('#invert').prop('checked')){
+      searchObj.view = Session.get("currentMode");
+    }else{
+      searchObj.view = {$ne: Session.get("currentMode")}
+    }
+  }
+
+
+  UserData.find(searchObj).forEach(function(e){
     uids.push(e._id);
   });
 
   shuffleArray(uids);
 
   var numPlayers = Math.min(uids.length , $('#numPlayers').val());
+
 
   for(var i = 0; i < numPlayers; i++){
     UserData.update(uids[i], {$set: {isSelected: true}});

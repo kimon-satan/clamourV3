@@ -24,7 +24,7 @@ Accounts.onCreateUser(function(options, user){
 		user.profile = {role: 'admin'};
 	}else{
 		user.profile = {role: 'player'};
-		console.log(user);
+		//console.log(user);
 		UserData.insert({ _id: user._id, view: 'wait', isSelected: false});
 	}
 
