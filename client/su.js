@@ -2,7 +2,8 @@
 var numPlayers;
 var isAllPlayers;
 var isLockOn;
-var voices = ['peterUK' , 'rachelUK' , 'lauraUS' , 'rayUS' , 'ryanUS'];
+
+var isRandomVoice = false;
 
 UI.registerHelper('isSu', function(){ return Meteor.user().profile.role == 'admin';});
 UI.registerHelper('isSuLogin', function(){ return Session.get('isAdmin')});
@@ -179,14 +180,18 @@ Template.su_numbers.events({
 
 'click #replay':function(e){
 
-    var options = {lockOn: isLockOn, lockIndex: $('#lockIdx').val()};
+    var options = {};
+
+    options = checkSendAll(options);
+
     msgStream.emit('message', {type: 'numbersReset', 'value': options});
     e.preventDefault();
   },
 
 'click #numbersInit':function(e){
   
-      var options = {lockOn: isLockOn, lockIndex: $('#lockIdx').val()};
+      var options = {};
+      options = checkSendAll(options);
       msgStream.emit('message', {type: 'screenChange', 'value' : 'numbers'});
       msgStream.emit('message', {type: 'numbersReset', 'value': options});
       e.preventDefault();
@@ -200,7 +205,9 @@ Template.su_numbers.events({
   $('#lockOn').removeClass('btn-default');
   $('#lockOff').removeClass('btn-primary');
   $('#lockOff').addClass('btn-default');
-  var options = {lockOn: isLockOn, lockIndex: $('#lockIdx').val()};
+
+  var options = {lockOn: isLockOn};
+  options = checkSendAll(options);
   msgStream.emit('message', {type: 'numbersChange', 'value': options});
   e.preventDefault();
 },
@@ -212,10 +219,80 @@ Template.su_numbers.events({
   $('#lockOn').removeClass('btn-primary');
   $('#lockOff').removeClass('btn-default');
   $('#lockOff').addClass('btn-primary');
+  
   var options = {lockOn: isLockOn};
+  options = checkSendAll(options);
+  msgStream.emit('message', {type: 'numbersChange', 'value': options});
+  e.preventDefault();
+},
+
+
+
+'click #randVoices': function(e){
+
+    isRandomVoice = true;
+    $('#randVoices').removeClass('btn-default');
+    $('#randVoices').addClass('btn-primary');
+    var options = {isRandomVoice: isRandomVoice};
+    options = checkSendAll(options);
+    msgStream.emit('message', {type: 'numbersChange', 'value': options});
+
+    e.preventDefault();
+},
+
+'click .numbersInput, blur .numbersInput':function(e){
+
+    var options = {};
+    options[e.currentTarget.id] = $('#' + e.currentTarget.id).val();
+    options = checkSendAll(options);
+    msgStream.emit('message', {type: 'numbersChange', 'value': options});
+
+
+},
+
+
+
+'click .voiceItem':function(e){
+
+  if(isRandomVoice){
+      isRandomVoice = false;
+      $('#randVoices').addClass('btn-default');
+      $('#randVoices').removeClass('btn-primary');
+  }
+  Session.set("currentVoice", e.currentTarget.id);
+  var options = {voice: e.currentTarget.id, isRandomVoice: false};
+  options = checkSendAll(options);
   msgStream.emit('message', {type: 'numbersChange', 'value': options});
   e.preventDefault();
 }
 
 
+
+
 });
+
+function checkSendAll(options){
+
+  if($('#sendAll').prop('checked')){
+      options = getNumbersOptions();
+  }
+
+  return options;
+}
+
+function getNumbersOptions(){
+  var options = {
+
+    lockOn: isLockOn, 
+    startIndex: $('#startIndex').val(),
+    endIndex: $('#endIndex').val(),
+    volume: $('#volume').val(),
+    pan:  $('#pan').val() ,
+    fadeTime: $('#fadeTime').val(),
+    isRandomVoice: isRandomVoice,
+    voice: Session.get('currentVoice')
+
+  };
+
+  return options
+}

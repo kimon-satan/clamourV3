@@ -86,13 +86,13 @@ msgStream.permissions.read(function(eventName, args) {
 
 Meteor.methods({
 
-	numPing:function(num) { // this will need revising for the new SC model
+	numPing:function(options) { 
 
-		console.log(num);
+		console.log(options);
 
 		var buf = osc.toBuffer({
 			address: "/hit",
-			args: [num, 'peterUK', 0.1, 0]
+			args: [options.num, options.voice, options.volume, options.pan]
 	  	});
 
 	  	udp.send(buf, 0, buf.length, port, host);
