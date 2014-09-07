@@ -18,11 +18,13 @@
 
 	<h1>Clamour Admin</h1>
 
-	<div class="col-md-6">
+	<div class="col-md-6 scrollable">
 
 		{{>su_chat}}
 
 		{{>su_numbers}}
+
+		{{>su_onOff}}
 
 
 	</div>
@@ -84,7 +86,7 @@
 		
 
 			<h4>Players</h4>
-
+			<div class="scrollable">
 			<table class="table table-striped">
 			  <thead>
 			    <th>id</th>
@@ -104,7 +106,7 @@
 					{{/if}}
 				{{/each}}
 			</table>
-
+			</div>
 		</div>
 	</div>
 
@@ -191,5 +193,26 @@
 
 			</div>
 		</div>
+</template>
+
+
+
+<template name= "su_onOff">
+	<!-- ....................... numbers ................... -->
+	<div class="panel panel-default">
+		<div class="panel-body">
+
+			<h2>onOff</h2>
+			<div>
+				<a href="#" id="onOffInit" class="btn btn-sm btn-warning tbSpacer">init</a>
+				<a href="#" id="addOn" class="btn btn-sm btn-success tbSpacer">new on</a>
+				<a href="#" id="addOff" class="btn btn-sm btn-danger tbSpacer">new off</a>
+			</div>
+		</div>
+	</div>
+</template>
+
+<template name= "su_voiceSelector">
+
 </template>
 

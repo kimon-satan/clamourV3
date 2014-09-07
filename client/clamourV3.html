@@ -48,6 +48,10 @@
 		{{>numbers}}
 	{{/if}}
 
+	{{#if isScreen 'onOff'}}
+		{{>onOff}}
+	{{/if}}
+
 </template>
 
 <template name="wait">
@@ -55,7 +59,6 @@
 </template>
 
 <template name="chat">
-	<h1>chat</h1>
 	<div class= "largeText">{{chatText}}</div>
 </template>
 
@@ -65,6 +68,16 @@
   <a href= "#" id="numberBox">
   	<div id="num" class="{{voice}}">{{currNumber}}</div>
   </a>
+
+</template>
+
+<template name="onOff">
+  <h1>on/off</h1>
+  {{#if isOnButton}}
+  {{/if}}
+
+  {{#if isOffButton}}
+  {{/if}}
 
 </template>
 

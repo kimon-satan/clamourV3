@@ -296,3 +296,14 @@ function getNumbersOptions(){
 
   return options
 }
+
+
+Template.su_onOff.events({
+
+  'click #onOffInit':function(e){
+
+      msgStream.emit('message', {type: 'screenChange', 'value' : 'onOff'});
+      e.preventDefault();
+  }
+
+});

@@ -57,6 +57,11 @@ body{
      font-family: "heather", sans-serif;
 }
 
+.scrollable{
+    max-height: 700px;
+    overflow: scroll;
+}
+
 h1{
 
 	font-size: 40px;
