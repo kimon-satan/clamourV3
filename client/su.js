@@ -1,7 +1,8 @@
 
 var numPlayers;
 var isAllPlayers;
-
+var isLockOn;
+var voices = ['peterUK' , 'rachelUK' , 'lauraUS' , 'rayUS' , 'ryanUS'];
 
 UI.registerHelper('isSu', function(){ return Meteor.user().profile.role == 'admin';});
 UI.registerHelper('isSuLogin', function(){ return Session.get('isAdmin')});
@@ -30,11 +31,13 @@ Template.su.created = function(){
 
   numPlayers = 1;
   isAllPlayers = false;
+  isLockOn = false;
 
   Meteor.subscribe("UserData", Meteor.user()._id);
   Meteor.subscribe("AllPlayers", Meteor.user()._id);
 
-  Session.set("currentMode", "chat");
+  Session.set("currentMode", "none");
+  Session.set("currentVoice", voices[0]);
 
   Meteor.defer(function(){
 
@@ -166,20 +169,53 @@ Template.su_chat.events({
 
 });
 
+Template.su_numbers.voices = function(){
+  return voices;
+}
+
+Template.su_numbers.currentVoice = function(){return Session.get("currentVoice")}
+
 Template.su_numbers.events({
 
 'click #replay':function(e){
 
-    msgStream.emit('message', {type: 'numbersReset'});
+    var options = {lockOn: isLockOn, lockIndex: $('#lockIdx').val()};
+    msgStream.emit('message', {type: 'numbersReset', 'value': options});
     e.preventDefault();
   },
 
-  'click #numbersInit':function(e){
+'click #numbersInit':function(e){
   
-
+      var options = {lockOn: isLockOn, lockIndex: $('#lockIdx').val()};
       msgStream.emit('message', {type: 'screenChange', 'value' : 'numbers'});
-      msgStream.emit('message', {type: 'numbersReset'});
+      msgStream.emit('message', {type: 'numbersReset', 'value': options});
+      e.preventDefault();
 
-  }
+  },
+
+'click #lockOn':function(e){
+
+  isLockOn = true;
+  $('#lockOn').addClass('btn-primary');
+  $('#lockOn').removeClass('btn-default');
+  $('#lockOff').removeClass('btn-primary');
+  $('#lockOff').addClass('btn-default');
+  var options = {lockOn: isLockOn, lockIndex: $('#lockIdx').val()};
+  msgStream.emit('message', {type: 'numbersChange', 'value': options});
+  e.preventDefault();
+},
+
+'click #lockOff':function(e){
+
+  isLockOn = false;
+  $('#lockOn').addClass('btn-default');
+  $('#lockOn').removeClass('btn-primary');
+  $('#lockOff').removeClass('btn-default');
+  $('#lockOff').addClass('btn-primary');
+  var options = {lockOn: isLockOn};
+  msgStream.emit('message', {type: 'numbersChange', 'value': options});
+  e.preventDefault();
+}
+
 
 });

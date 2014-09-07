@@ -1,6 +1,17 @@
+
+
 msgStream = new Meteor.Stream('msgStream');
 var buttonPressed = false;
 
+var numbersOptions = {
+
+  lockOn: false,
+  lockIndex: 0,
+  amp: 0.5,
+  pan: 0,
+  voice: 'peterUK'
+
+};
 
 
 
@@ -28,6 +39,7 @@ Template.clamour.created = function(){
 Template.clamour.screenMode = function(){return Session.get('screenMode');}
 
 Template.clamour.isScreen = function(mode){
+
   return (Session.get('screenMode') == mode);
 }
 
@@ -45,7 +57,16 @@ Template.numbers.events({
     setTimeout(function(){
 
       buttonPressed = false;
-      cn = Math.max(1, cn - 1);
+
+      console.log(numbersOptions);
+
+      if(numbersOptions.lockOn){
+        cn = Math.max(1, cn - 1);
+      }else{
+        cn = cn - 1;
+        if(cn == 0)cn = 10;
+      }
+      
       Session.set('currNumber', cn);
       $('#numberBox').removeClass('fade');
       $('#numberBox').css('opacity', 0.25);
@@ -64,12 +85,28 @@ Template.chat.chatText = function(){return Session.get('chatText');}
 
 msgStream.on('message', function(message){
 
+  var options;
 
-  if(message.type == 'numbersReset')Session.set('currNumber' , 10);
+  if(message.type == 'numbersReset'){
+    
+    options = message.value;
+
+    Session.set('currNumber' , 10);
+
+  }
+
+  if(message.type == 'numbersChange'){
+
+    options = message.value;
+    if(typeof options.lockOn !== "undefined")numbersOptions.lockOn = options.lockOn;
+
+  }
+
   if(message.type == 'screenChange'){ 
     Session.set('screenMode', message.value);
     UserData.update(Meteor.user()._id, {$set: {view: Session.get('screenMode')}});
   }
+
   if(message.type == 'updateChat'){ Session.set('chatText', message.value);}
 
 });
