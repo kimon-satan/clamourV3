@@ -57,9 +57,17 @@ Meteor.publish('MyAccount', function(userId){
 
 msgStream  = new Meteor.Stream('msgStream');
 
-msgStream.permissions.write(function() {
+msgStream.permissions.write(function(eventName) {
 
-	return checkAdmin(this.userId);
+	if(eventName == "message"){
+
+		return checkAdmin(this.userId);
+
+	}else if(eventName == "userMessage"){
+
+		return true;
+
+	}
 
 });
 
@@ -94,6 +102,30 @@ Meteor.methods({
 			address: "/hit",
 			args: [options.num, options.voice, options.volume, options.pan]
 	  	});
+
+	  	udp.send(buf, 0, buf.length, port, host);
+		
+	},
+
+	onOffPing:function(options) { 
+
+		console.log(options);
+
+		if(options.msg == 'on'){
+
+			var buf = osc.toBuffer({
+				address: "/noteOn",
+				args: [options.voice, options.volume, options.pan]
+		  	});
+
+		}else{
+
+			var buf = osc.toBuffer({
+				address: "/noteOff",
+				args: [options.voice, options.volume, options.pan]
+		  	});
+
+		}
 
 	  	udp.send(buf, 0, buf.length, port, host);
 		

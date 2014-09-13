@@ -17,6 +17,17 @@ var numbersOptions = {
 
 };
 
+var onOffOptions = {
+
+  amp: 0.5,
+  pan: 0,
+  volume: 0.2,
+  fadeTime: 0.5,
+  voice: 'peterUK',
+  isRandomVoice: false
+
+};
+
 voices = ['peterUK' , 'rachelUK' , 'heatherUS'];
 
 
@@ -42,7 +53,7 @@ Template.clamour.created = function(){
 
   Session.set('voice', numbersOptions.voice);
 
-  var oo = {isOnButton: false, isOffButton: false};
+  var oo = {isOnButton: false, isOnActive: false, isOffButton: false};
   Session.set("onOffButtons", oo);
 
 }
@@ -66,7 +77,6 @@ Template.numbers.events({
     var cn = Session.get('currNumber');
 
     var fstring = 'fadeInOut ' + numbersOptions.fadeTime + 's forwards'
-    console.log(fstring);
    $('#numberBox').css('-webkit-animation', fstring ); 
    $('#numberBox').css('animation', fstring); 
 
@@ -130,6 +140,85 @@ Template.chat.chatText = function(){return Session.get('chatText');}
 Template.onOff.isOnButton = function(){return Session.get('onOffButtons').isOnButton;}
 Template.onOff.isOffButton = function(){return Session.get('onOffButtons').isOffButton;}
 
+Template.onOff.events({
+
+  'touchstart #onBox, click #onBox':function(e){
+
+    $('#onBox').css('opacity', 1.0 );
+    
+     var fstring = 'shakin 0.5s infinite'
+
+   $('#onBox').css('-webkit-animation', fstring ); 
+   $('#onBox').css('animation', fstring);  
+
+    var oo = Session.get('onOffButtons');
+    oo.isOnActive = true;
+    Session.set('onOffButtons', oo);
+
+    var soundOptions = {
+
+      msg: 'on',
+      voice: Session.get('voice'),
+      pan: onOffOptions.pan,
+      volume: onOffOptions.volume
+
+    };
+
+    Meteor.call('onOffPing', soundOptions);
+
+    e.preventDefault();
+  }, 
+
+  'touchstart #offBox, click #offBox':function(e){
+
+    
+    var fstring = 'fadeInOut 0.3s forwards'
+   $('#offBox').css('-webkit-animation', fstring ); 
+   $('#offBox').css('animation', fstring); 
+
+    var soundOptions = {
+
+      msg: 'off',
+      voice: Session.get('voice'),
+      pan: onOffOptions.pan,
+      volume: onOffOptions.volume
+
+    };
+
+    var oo = Session.get('onOffButtons');
+    oo.isOffButton = false;
+    Session.set('onOffButtons', oo);
+
+
+    Meteor.call('onOffPing', soundOptions);
+
+    msgStream.emit('userMessage', {type: 'turnOff', 'value': {}});
+
+
+    e.preventDefault();
+  }
+
+});
+
+
+msgStream.on('userMessage', function(message){
+
+   
+  if(message.type == 'turnOff'){
+
+
+    var oo = Session.get('onOffButtons');
+    console.log(oo);
+    if(oo.isOnActive){
+      console.log(message);
+      oo.isOnButton = false;
+      oo.isOnActive = false;
+      Session.set('onOffButtons', oo);
+    }
+
+  }
+
+});
 
 msgStream.on('message', function(message){
 
@@ -157,6 +246,7 @@ msgStream.on('message', function(message){
 
     var oo = Session.get('onOffButtons');
     oo.isOnButton = true;
+    oo.isOnActive = false;
     Session.set('onOffButtons', oo);
 
   }
@@ -165,11 +255,14 @@ msgStream.on('message', function(message){
 
     var oo = Session.get('onOffButtons');
     oo.isOffButton = true;
+
     Session.set('onOffButtons', oo);
 
   }
 
   if(message.type == 'updateChat'){ Session.set('chatText', message.value);}
+
+  
 
 });
 
