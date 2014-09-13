@@ -65,7 +65,7 @@ msgStream.permissions.write(function(eventName) {
 
 	}else if(eventName == "userMessage"){
 
-		return true;
+		return !checkAdmin(this.userId);
 
 	}
 
@@ -76,13 +76,19 @@ msgStream.permissions.read(function(eventName, args) {
 	 var ud = UserData.findOne(this.userId, {fields: {isSelected: 1}});
 
 	 if(ud){
-		 if(ud.isSelected){
-		 	//console.log(this.userId, eventName , args);
-		 	return true;
-		 }else{
-		 	//console.log( this.userId , " not found");
-		 	return false;
-		 }
+		if(eventName == "message"){
+		
+			 if(ud.isSelected){
+			 	//console.log(this.userId, eventName , args);
+			 	return true;
+			 }else{
+			 	//console.log( this.userId , " not found");
+			 	return false;
+			 }
+			
+		}else if(eventName == "userMessage"){
+			return true;
+		}
 	}
 
 },false);
@@ -115,7 +121,7 @@ Meteor.methods({
 
 			var buf = osc.toBuffer({
 				address: "/noteOn",
-				args: [options.voice, options.volume, options.pan]
+				args: [options.voice, options.v_volume, options.s_volume, options.pan, options.freq]
 		  	});
 
 		}else{

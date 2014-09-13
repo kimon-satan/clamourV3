@@ -66,7 +66,7 @@
 <template name="numbers">
   
   <a href= "#" id="numberBox">
-  	<div id="num" class="{{voice}}">{{currNumber}}</div>
+  	<div id="num" class="{{voice.numbers}}">{{currNumber}}</div>
   </a>
 
 </template>
@@ -77,17 +77,23 @@
 		<div class="col-sm-6">
 		  {{#if isOnButton}}
 		  <a href= "#" id="onBox">
-		  	<div id="on" class="{{voice}} bigText">on</div>
+		  	<div id="on" class="{{voice.on}} bigText">on</div>
 		  </a>
+
+		 {{else}}
+		 	<div id="blankBox"></div>
 		  {{/if}}
 		</div>
 
 		<div class="col-sm-6">
 		  {{#if isOffButton}}
 		  <a href= "#" id="offBox">
-		  	<div id="off" class="{{voice}} bigText">off</div>
+		  	<div id="off" class="{{voice.off}} bigText">off</div>
 		  </a>
+		  {{else}}
+		 	<div id="blankBox"></div>
 		  {{/if}}
+
 		</div>
 	</div>
 

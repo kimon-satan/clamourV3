@@ -2,6 +2,7 @@
 
 msgStream = new Meteor.Stream('msgStream');
 var buttonPressed = false;
+var panOffset = Math.random() * 2 - 1;
 
 var numbersOptions = {
 
@@ -10,6 +11,7 @@ var numbersOptions = {
   startIndex: 10,
   amp: 0.5,
   pan: 0,
+  splay: 0,
   volume: 0.2,
   fadeTime: 0.5,
   voice: 'peterUK',
@@ -17,14 +19,15 @@ var numbersOptions = {
 
 };
 
-var onOffOptions = {
+var onOptions = {
 
-  amp: 0.5,
-  pan: 0,
-  volume: 0.2,
-  fadeTime: 0.5,
   voice: 'peterUK',
-  isRandomVoice: false
+
+};
+
+var offOptions = {
+
+    voice: 'peterUK',
 
 };
 
@@ -51,7 +54,15 @@ Template.clamour.created = function(){
       Session.set('screenMode', UserData.findOne(Meteor.user()._id, {fields: {view: 1}}).view);
   });
 
-  Session.set('voice', numbersOptions.voice);
+  var v = {
+
+    numbers: numbersOptions.voice,
+    on: onOptions.voice,
+    off: offOptions.voice
+
+  };
+
+  Session.set('voice', v);
 
   var oo = {isOnButton: false, isOnActive: false, isOffButton: false};
   Session.set("onOffButtons", oo);
@@ -85,8 +96,8 @@ Template.numbers.events({
     var soundOptions = {
 
       num: cn,
-      voice: Session.get('voice'),
-      pan: numbersOptions.pan,
+      voice: Session.get('voice').numbers,
+      pan: numbersOptions.pan + numbersOptions.splay * panOffset,
       volume: numbersOptions.volume
 
     };
@@ -104,7 +115,11 @@ Template.numbers.events({
         }else{
           cn = cn - 1;
           if(cn < numbersOptions.endIndex){
-            chooseRandomVoice();
+            
+            var v = Session.get('voice');
+            v.numbers = (numbersOptions.isRandomVoice) ? chooseRandomVoice() : numbersOptions.voice;
+            Session.set('voice', v);
+            
             cn = numbersOptions.startIndex;
           }
         }
@@ -115,7 +130,10 @@ Template.numbers.events({
           cn = parseInt(cn) + 1;
           if(cn > parseInt(numbersOptions.endIndex)){
             cn = numbersOptions.startIndex;
-            chooseRandomVoice();
+            var v = Session.get('voice');
+            v.numbers = (numbersOptions.isRandomVoice) ? chooseRandomVoice() : numbersOptions.voice;
+            Session.set('voice', v);
+
           }
         }
       }
@@ -144,6 +162,9 @@ Template.onOff.events({
 
   'touchstart #onBox, click #onBox':function(e){
 
+    var oo = Session.get('onOffButtons');
+
+    if(oo.isOnActive)return;
     $('#onBox').css('opacity', 1.0 );
     
      var fstring = 'shakin 0.5s infinite'
@@ -151,16 +172,19 @@ Template.onOff.events({
    $('#onBox').css('-webkit-animation', fstring ); 
    $('#onBox').css('animation', fstring);  
 
-    var oo = Session.get('onOffButtons');
+    
     oo.isOnActive = true;
     Session.set('onOffButtons', oo);
+    console.log(onOptions);
 
     var soundOptions = {
 
       msg: 'on',
-      voice: Session.get('voice'),
-      pan: onOffOptions.pan,
-      volume: onOffOptions.volume
+      voice: Session.get('voice').on,
+      pan: parseFloat(onOptions.pan) + parseFloat(onOptions.splay * panOffset),
+      v_volume: onOptions.vVolume,
+      s_volume: onOptions.sVolume,
+      freq: Math.random() * (onOptions.maxFreq - onOptions.minFreq) + parseInt(onOptions.minFreq)
 
     };
 
@@ -179,15 +203,26 @@ Template.onOff.events({
     var soundOptions = {
 
       msg: 'off',
-      voice: Session.get('voice'),
-      pan: onOffOptions.pan,
-      volume: onOffOptions.volume
+      voice: Session.get('voice').off,
+      pan: offOptions.pan,
+      volume: offOptions.volume
 
     };
 
-    var oo = Session.get('onOffButtons');
-    oo.isOffButton = false;
+      var oo = Session.get('onOffButtons');
+    if(oo.isOnActive){
+      oo.isOnButton = false;
+      oo.isOnActive = false;
+    }
     Session.set('onOffButtons', oo);
+
+    window.setTimeout(function(){
+
+      oo.isOffButton = false;
+      Session.set('onOffButtons', oo);
+    },300);
+
+
 
 
     Meteor.call('onOffPing', soundOptions);
@@ -206,11 +241,8 @@ msgStream.on('userMessage', function(message){
    
   if(message.type == 'turnOff'){
 
-
     var oo = Session.get('onOffButtons');
-    console.log(oo);
     if(oo.isOnActive){
-      console.log(message);
       oo.isOnButton = false;
       oo.isOnActive = false;
       Session.set('onOffButtons', oo);
@@ -223,11 +255,16 @@ msgStream.on('userMessage', function(message){
 msgStream.on('message', function(message){
 
 
+
   if(message.type == 'numbersReset'){
     
     setNumbersOptions(message.value);
     Session.set('currNumber' , numbersOptions.startIndex);
-    chooseRandomVoice();
+
+    var v = Session.get('voice');
+    v.numbers = (numbersOptions.isRandomVoice) ?  chooseRandomVoice() : numbersOptions.voice;
+    Session.set('voice', v);
+
 
   }
 
@@ -244,19 +281,37 @@ msgStream.on('message', function(message){
 
   if(message.type == 'addOn'){
 
+
     var oo = Session.get('onOffButtons');
-    oo.isOnButton = true;
-    oo.isOnActive = false;
-    Session.set('onOffButtons', oo);
+    if(!oo.isOnButton){
+
+      onOptions = message.value;
+
+      var v = Session.get('voice');
+      v.on = (onOptions.isRandomVoice) ? chooseRandomVoice() : onOptions.voice;
+      Session.set('voice', v);
+
+      oo.isOnButton = true;
+      oo.isOnActive = false;
+      Session.set('onOffButtons', oo);
+    }
 
   }
 
   if(message.type == 'addOff'){
 
     var oo = Session.get('onOffButtons');
-    oo.isOffButton = true;
+    if(!oo.isOffButton){
+       
+      offOptions = message.value;
 
-    Session.set('onOffButtons', oo);
+      var v = Session.get('voice');
+      v.off = (message.value.isRandomVoice) ? chooseRandomVoice() : offOptions.voice;
+      Session.set('voice', v);
+
+      oo.isOffButton = true;
+      Session.set('onOffButtons', oo);
+    }
 
   }
 
@@ -273,10 +328,13 @@ function setNumbersOptions(options){
   if(typeof options.endIndex !== "undefined")numbersOptions.endIndex = parseInt(options.endIndex);
   if(typeof options.volume !== "undefined")numbersOptions.volume = parseFloat(options.volume);
   if(typeof options.pan !== "undefined")numbersOptions.pan = parseFloat(options.pan);
+  if(typeof options.splay !== "undefined"){numbersOptions.splay = parseFloat(options.splay);}
   if(typeof options.fadeTime !== "undefined")numbersOptions.fadeTime = parseFloat(options.fadeTime);
   if(typeof options.isRandomVoice !== "undefined")numbersOptions.isRandomVoice = options.isRandomVoice;
-  if(typeof options.voice !== "undefined")numbersOptions.voice = options.voice;
+  if(typeof options.voice !== "undefined"){numbersOptions.voice = options.voice;}
 }
+
+
 
 function randCol(){
 
@@ -284,11 +342,9 @@ function randCol(){
 }
 
 function chooseRandomVoice(){
-    if(numbersOptions.isRandomVoice){
-      numbersOptions.voice = voices[Math.floor(Math.random() * voices.length)];
-    }
-
-    Session.set('voice', numbersOptions.voice);
+    var v = voices[Math.floor(Math.random() * voices.length)];
+    console.log(v);
+    return v;
 }
 
 

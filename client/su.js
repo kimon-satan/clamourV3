@@ -3,7 +3,8 @@ var numPlayers;
 var isAllPlayers;
 var isLockOn;
 
-var isRandomVoice = false;
+var isRandVoice_Num = false;
+var isRandVoice_oo = false;
 
 UI.registerHelper('isSu', function(){ return Meteor.user().profile.role == 'admin';});
 UI.registerHelper('isSuLogin', function(){ return Session.get('isAdmin')});
@@ -38,7 +39,8 @@ Template.su.created = function(){
   Meteor.subscribe("AllPlayers", Meteor.user()._id);
 
   Session.set("currentMode", "none");
-  Session.set("currentVoice", voices[0]);
+  Session.set("numbersVoice", voices[0]);
+  Session.set("onOffVoice", voices[0]);
 
   Meteor.defer(function(){
 
@@ -143,6 +145,9 @@ function shuffleArray(o){ //v1.0
     return o;
 };
 
+
+/*--------------------------------------------------------chat-------------------------------------------*/
+
 Template.su_chat.events({
 
    'click #chatClear':function(e){
@@ -170,6 +175,13 @@ Template.su_chat.events({
 
 });
 
+/*--------------------------------------------------------numbers-------------------------------------------*/
+
+Template.su_numbers.voices = function(){
+  return voices;
+}
+
+Template.su_numbers.currentVoice = function(){return Session.get("numbersVoice")}
 
 
 Template.su_numbers.events({
@@ -222,18 +234,40 @@ Template.su_numbers.events({
   e.preventDefault();
 },
 
+'click #splay':function(e){
+
+  var options = {splay: $('#splay').val()};
+  options = checkSendAll(options);
+  msgStream.emit('message', {type: 'numbersChange', 'value': options});
+  e.preventDefault();
+},
 
 
-'click #randVoices': function(e){
+'click #randVoices_num': function(e){
 
-    isRandomVoice = true;
-    $('#randVoices').removeClass('btn-default');
-    $('#randVoices').addClass('btn-primary');
-    var options = {isRandomVoice: isRandomVoice};
+    isRandVoice_Num = true;
+    $('#randVoices_num').removeClass('btn-default');
+    $('#randVoices_num').addClass('btn-primary');
+    var options = {isRandomVoice: isRandVoice_Num};
     options = checkSendAll(options);
     msgStream.emit('message', {type: 'numbersChange', 'value': options});
 
     e.preventDefault();
+},
+
+'click .voiceItem':function(e){
+
+  if(isRandVoice_Num){
+        isRandVoice_Num = false;
+        $('#randVoices_num').addClass('btn-default');
+        $('#randVoices_num').removeClass('btn-primary');
+    }
+  Session.set("numbersVoice", e.currentTarget.id);
+  var options = {voice: e.currentTarget.id, isRandVoice_Num: false};
+  options = checkSendAll(options);
+  msgStream.emit('message', {type: 'numbersChange', 'value': options});
+
+  e.preventDefault();
 },
 
 'click .numbersInput, blur .numbersInput':function(e){
@@ -244,12 +278,7 @@ Template.su_numbers.events({
     msgStream.emit('message', {type: 'numbersChange', 'value': options});
 
 
-},
-
-
-
-
-
+}
 
 
 
@@ -265,6 +294,7 @@ function checkSendAll(options){
 }
 
 function getNumbersOptions(){
+
   var options = {
 
     lockOn: isLockOn, 
@@ -273,14 +303,17 @@ function getNumbersOptions(){
     volume: $('#volume').val(),
     pan:  $('#pan').val() ,
     fadeTime: $('#fadeTime').val(),
-    isRandomVoice: isRandomVoice,
-    voice: Session.get('currentVoice')
+    isRandVoice: isRandVoice_Num,
+    splay: $('#splay').val(),
+    voice: Session.get('numbersVoice')
 
   };
 
   return options
 }
 
+
+/*---------------------------------------------------- on off -------------------------------------------*/
 
 Template.su_onOff.events({
 
@@ -292,51 +325,80 @@ Template.su_onOff.events({
 
   'click #addOn':function(e){
 
-    msgStream.emit('message', {type: 'addOn', 'value' : 'on'});
+    var onOptions = getOnOptions();
+    msgStream.emit('message', {type: 'addOn', 'value' : onOptions});
     e.preventDefault();
   },
 
   'click #addOff':function(e){
 
-    msgStream.emit('message', {type: 'addOff', 'value' : 'off'});
+    var offOptions = getOffOptions();
+    msgStream.emit('message', {type: 'addOff', 'value' : offOptions});
     e.preventDefault();
-  }
+  },
 
-});
+  'click #randVoices_oo': function(e){
 
-Template.su_voiceSelector.voices = function(){
-  return voices;
-}
-
-Template.su_voiceSelector.currentVoice = function(){return Session.get("currentVoice")}
-
-Template.su_voiceSelector.events({
-
-  'click .voiceItem':function(e){
-
-    if($(e.currentTarget).hasClass('numbers'))numbersVoiceSel(e);
-    if($(e.currentTarget).hasClass('onOff'))onOffVoiceSel(e);
-
-    e.preventDefault();
-  }
-
-
-});
-
-
-function numbersVoiceSel(e){
-    if(isRandomVoice){
-        isRandomVoice = false;
-        $('#randVoices').addClass('btn-default');
-        $('#randVoices').removeClass('btn-primary');
-    }
-    Session.set("currentVoice", e.currentTarget.id);
-    var options = {voice: e.currentTarget.id, isRandomVoice: false};
+    isRandVoice_oo = true;
+    $('#randVoices_oo').removeClass('btn-default');
+    $('#randVoices_oo').addClass('btn-primary');
+    var options = {isRandomVoice: isRandVoice_oo};
     options = checkSendAll(options);
     msgStream.emit('message', {type: 'numbersChange', 'value': options});
 
+    e.preventDefault();
+},
+
+'click .voiceItem':function(e){
+
+  if(isRandVoice_oo){
+      isRandVoice_oo = false;
+      $('#randVoices_oo').addClass('btn-default');
+      $('#randVoices_oo').removeClass('btn-primary');
+  }
+
+  Session.set("onOffVoice", e.currentTarget.id);
+  var options = {voice: e.currentTarget.id, isRandVoice_oo: isRandVoice_oo};
+
+  e.preventDefault();
+},
+
+});
+
+Template.su_onOff.voices = function(){
+  return voices;
 }
 
-function onOffVoiceSel(e){
+Template.su_onOff.currentVoice = function(){return Session.get("onOffVoice")}
+
+function getOnOptions(){
+
+    var onOptions = {};
+    onOptions.isRandomVoice = isRandVoice_oo;
+    onOptions.voice = Session.get('onOffVoice');
+    onOptions.minFreq = $('#oo_minF').val();
+    onOptions.maxFreq = $('#oo_maxF').val();
+    onOptions.vVolume = $('#oo_Vvolume').val();
+    onOptions.sVolume = $('#oo_Svolume').val();
+    onOptions.pan = $('#oo_pan').val();
+    onOptions.splay = $('#oo_splay').val();
+
+    return onOptions;
 
 }
+
+function getOffOptions(){
+
+  var offOptions = {};
+  offOptions.isRandomVoice = isRandVoice_oo;
+  offOptions.voice = Session.get('onOffVoice');
+  offOptions.volume = $('#oo_Vvolume').val();
+  offOptions.pan = $('#oo_pan').val();
+  offOptions.splay = $('#oo_slay').val();
+
+  return offOptions;
+
+}
+
+
+

@@ -112,15 +112,19 @@ input[type='checkbox']:checked {
 
 }
 
-#onBox, #offBox{
+#onBox, #offBox, #blankBox{
 
     display: block;
     opacity: 0.35;
     text-decoration: none;
     color: #000;
     margin-top: 20px;
+    height: 175px;
+    width: 290px;
 
 }
+
+
 
 #onBox{
     background: #00FF00;

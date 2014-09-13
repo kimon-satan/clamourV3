@@ -139,16 +139,31 @@
 
 				<div>
 				
-					{{>su_voiceSelector panel='numbers'}}
-					<a href="#" id="randVoices" class="btn btn-sm btn-default tbSpacer">randomVoices</a>
+						<span class="dropdown lrSpacer">
+							<label>voice selector: </label>
+						  <button class="btn btn-default dropdown-toggle" type="button" id="voiceSelector" data-toggle="dropdown">
+						   	{{currentVoice}}
+						    <span class="caret"></span>
+						  </button>
+						  <ul class="dropdown-menu" role="menu" aria-labelledby="voiceSelector">
+						    
+						  	{{#each voices}}
+						    <li><a role="menuitem" class="voiceItem {{../panel}}" href="#" id="{{this}}">{{this}}</a></li>
+						    {{/each}}
+
+						  </ul>
+						</span>
+						<a href="#" id="randVoices_num" class="btn btn-sm btn-default tbSpacer">randomVoices</a>
 
 				</div>
-
+				<br/>
 				<div>
 					<label for="volume">Volume: </label>
 					<input id="volume" class="numbersInput" type="number" min="0.01" max="1.0" value="0.2" step="0.01">
-					<label for="volume">Pan: </label>
+					<label for="pan">Pan: </label>
 					<input id="pan" class="numbersInput" type="number" min="-0.75" max="0.75" value="0.0" step="0.05">
+					<label for="splay">Splay: </label>
+					<input id="splay" class="numbersInput" type="number" min="0.0" max="0.25" value="0.0" step="0.05">
 					<label for="fadeTime">fadeTime: </label>
 					<input id="fadeTime" class="numbersInput" type="number" min="0.1" max="1.0" value="0.5" step="0.05">
 				</div>
@@ -197,30 +212,48 @@
 				<a href="#" id="addOff" class="btn btn-sm btn-danger tbSpacer">new off</a>
 			</div>
 
-			{{>su_voiceSelector panel='onOff'}}
+			<span class="dropdown lrSpacer">
+				<label>voice selector: </label>
+			  <button class="btn btn-default dropdown-toggle" type="button" id="voiceSelector" data-toggle="dropdown">
+			   	{{currentVoice}}
+			    <span class="caret"></span>
+			  </button>
+			  <ul class="dropdown-menu" role="menu" aria-labelledby="voiceSelector">
+			    
+			  	{{#each voices}}
+			    <li><a role="menuitem" class="voiceItem {{../panel}}" href="#" id="{{this}}">{{this}}</a></li>
+			    {{/each}}
+
+
+
+			  </ul>
+
+			  <a href="#" id="randVoices_oo" class="btn btn-sm btn-default tbSpacer">randomVoices</a>
+
+			</span>
+
+			<div>
+				<label for="oo_Vvolume">Voice Vol: </label>
+				<input id="oo_Vvolume" class="numbersInput" type="number" min="0.01" max="1.0" value="0.5" step="0.01">
+				<label for="oo_Svolume">Signal Vol: </label>
+				<input id="oo_Svolume" class="numbersInput" type="number" min="0.01" max="1.0" value="0.2" step="0.01">
+				<label for="oo_pan">Pan: </label>
+				<input id="oo_pan" class="numbersInput" type="number" min="-0.75" max="0.75" value="0.0" step="0.05">
+				<label for="oo_splay">Splay: </label>
+				<input id="oo_splay" class="numbersInput" type="number" min="0.0" max="0.25" value="0.0" step="0.05">
+			</div>
+
+			<div class= "tbSpacer">
+				<label for="oo_minF">Min Freq: </label>
+				<input id="oo_minF" class="numbersInput" type="number" min="50" max="3000" value="50.0" step="10">
+				<label for="oo_maxF">Max Freq: </label>
+				<input id="oo_maxF" class="numbersInput" type="number" min="100" max="4000" value="1000.0" step="10">
+			</div>
+
 		</div>
 	</div>
 </template>
 
 
 
-<template name= "su_voiceSelector">
-				
-	<span class="dropdown lrSpacer">
-		<label>voice selector: </label>
-	  <button class="btn btn-default dropdown-toggle" type="button" id="voiceSelector" data-toggle="dropdown">
-	   	{{currentVoice}}
-	    <span class="caret"></span>
-	  </button>
-	  <ul class="dropdown-menu" role="menu" aria-labelledby="voiceSelector">
-	    
-	  	{{#each voices}}
-	    <li><a role="menuitem" class="voiceItem {{../panel}}" href="#" id="{{this}}">{{this}}</a></li>
-	    {{/each}}
-
-	  </ul>
-	</span>
-	
-
-</template>
 
