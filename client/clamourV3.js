@@ -31,7 +31,7 @@ var offOptions = {
 
 };
 
-voices = ['peterUK' , 'rachelUK' , 'heatherUS'];
+voices = ['peterUK' , 'grahamUK', 'rachelUK' , 'catherineUK', 'bridgetUK',  'rayUS', 'ryanUS', 'paulUS', 'heatherUS', 'kateUS'];
 synths = ['playWithTone', 'granPulseNoise'];
 
 
@@ -208,13 +208,15 @@ Template.onOff.events({
 
     };
 
+
     if(onOptions.synth == 'playWithTone'){
-      soundOptions.freq =  Math.random() * (onOptions.maxFreq - onOptions.minFreq) + parseInt(onOptions.minFreq),
-      soundOptions.noiseFreq = onOptions.noiseFreq
+      soundOptions.freq =  Math.random() * parseInt(onOptions.fRng) + parseInt(onOptions.minFreq),
+      soundOptions.noiseFreq = onOptions.noiseFreq * (1 - (Math.random() * 2 - 1) * onOptions.nFreqV);
     }else if(onOptions.synth == 'granPulseNoise'){
-      soundOptions.trigRate = onOptions.trigRate;
-      soundOptions.envDur = onOptions.envDur;
-      soundOptions.endPosR = onOptions.endPosR;
+      var v 
+      soundOptions.trigRate = onOptions.trigRate * (1 - (Math.random() * 2 - 1) * onOptions.variance);
+      soundOptions.envDur = onOptions.envDur * (1 - (Math.random() * 2 - 1) * onOptions.variance);
+      soundOptions.endPosR = onOptions.endPosR * (1 - (Math.random() * 2 - 1) * onOptions.variance);
     }
 
     Meteor.call('onOffPing', soundOptions);
@@ -326,7 +328,11 @@ msgStream.on('message', function(message){
       oo.isOnButton = true;
       oo.isOnActive = false;
       Session.set('onOffButtons', oo);
+
+      UserData.update(Meteor.user()._id, {$set: {on: true}});
     }
+
+
 
   }
 
@@ -343,6 +349,8 @@ msgStream.on('message', function(message){
 
       oo.isOffButton = true;
       Session.set('onOffButtons', oo);
+
+      UserData.update(Meteor.user()._id, {$set: {off: true}});
     }
 
   }

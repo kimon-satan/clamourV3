@@ -2,9 +2,10 @@
 var numPlayers;
 var isAllPlayers;
 var isLockOn;
-
 var isRandVoice_Num = false;
 var isRandVoice_oo = false;
+var pwtOptions = {};
+var gpnOptions = {};
 
 UI.registerHelper('isSu', function(){ return Meteor.user().profile.role == 'admin';});
 UI.registerHelper('isSuLogin', function(){ return Session.get('isAdmin')});
@@ -91,12 +92,16 @@ Template.su_players.events({
 Template.su_players.playerModes = function(){
   return ["numbers" , "chat", "onOff", "none"];
 }
+Template.su_players.checkCurrentMode = function(m){return (Session.get("currentMode") == m)}
 
 Template.su_players.selectedPlayers = function(){
   return UserData.find({},{sort: {isSelected: -1}}).fetch();
 }
 
 Template.su_players.currentMode = function(){return Session.get("currentMode")}
+Template.su_players.currentFilter = function(){return Session.get("currentFilter")}
+
+Template.su_players.onOffFilters = function(){return ["noOn","hasOn", "noOff", "hasOff"]}
 
 function selectAllPlayers(){
 
@@ -264,7 +269,7 @@ Template.su_numbers.events({
         $('#randVoices_num').removeClass('btn-primary');
     }
   Session.set("numbersVoice", e.currentTarget.id);
-  var options = {voice: e.currentTarget.id, isRandVoice_Num: false};
+  var options = {voice: e.currentTarget.id, isRandomVoice: false};
   options = checkSendAll(options);
   msgStream.emit('message', {type: 'numbersChange', 'value': options});
 
@@ -304,7 +309,7 @@ function getNumbersOptions(){
     volume: $('#volume').val(),
     pan:  $('#pan').val() ,
     fadeTime: $('#fadeTime').val(),
-    isRandVoice: isRandVoice_Num,
+    isRandomVoice: isRandVoice_Num,
     splay: $('#splay').val(),
     voice: Session.get('numbersVoice')
 
@@ -391,6 +396,49 @@ Template.su_onOff.synths = function(){
 
 Template.su_onOff.currentVoice = function(){return Session.get("onOffVoice")}
 
+Template.su_pwtCtrls.created = function(){
+
+  Meteor.defer(function(){
+    
+
+    if(typeof pwtOptions.minFreq !== 'undefined')$('#oo_minF').val(pwtOptions.minFreq);
+    if(typeof pwtOptions.fRng !== 'undefined')$('#oo_fRng').val(pwtOptions.fRng);
+    if(typeof pwtOptions.noiseFreq !== 'undefined')$('#oo_noiseFreq').val(pwtOptions.noiseFreq);
+    if(typeof pwtOptions.nFreqV !== 'undefined')$('#oo_nFreqV').val(pwtOptions.nFreqV);
+
+  });
+}
+
+Template.su_pwtCtrls.destroyed = function(){
+    pwtOptions.minFreq = $('#oo_minF').val();
+    pwtOptions.fRng = $('#oo_fRng').val();
+    pwtOptions.noiseFreq = $('#oo_noiseFreq').val();
+    pwtOptions.nFreqV = $('#oo_nFreqV').val();
+}
+
+Template.su_gpnCtrls.created = function(){
+
+  Meteor.defer(function(){
+    
+
+    if(typeof gpnOptions.trigRate !== 'undefined')$('#oo_trigRate').val(gpnOptions.trigRate);
+    if(typeof gpnOptions.envDur !== 'undefined')$('#oo_envDur').val(gpnOptions.envDur);
+    if(typeof gpnOptions.endPosR !== 'undefined')$('#oo_endPosR').val(gpnOptions.endPosR);
+    if(typeof gpnOptions.variance !== 'undefined')$('#oo_variance').val(gpnOptions.variance);
+
+  });
+}
+
+Template.su_gpnCtrls.destroyed = function(){
+      gpnOptions.trigRate = $('#oo_trigRate').val();
+      gpnOptions.envDur = $('#oo_envDur').val();
+      gpnOptions.endPosR = $('#oo_endPosR').val();
+      gpnOptions.variance = $('#oo_variance').val();
+
+}
+
+
+
 function getOnOptions(){
 
     var onOptions = {};
@@ -404,12 +452,14 @@ function getOnOptions(){
 
     if(onOptions.synth == 'playWithTone'){
       onOptions.minFreq = $('#oo_minF').val();
-      onOptions.maxFreq = $('#oo_maxF').val();
+      onOptions.fRng = $('#oo_fRng').val();
       onOptions.noiseFreq = $('#oo_noiseFreq').val();
+      onOptions.nFreqV = $('#oo_nFreqV').val();
     }else if(onOptions.synth == 'granPulseNoise'){
       onOptions.trigRate = $('#oo_trigRate').val();
       onOptions.envDur = $('#oo_envDur').val();
       onOptions.endPosR = $('#oo_endPosR').val();
+      onOptions.variance = $('#oo_variance').val();
     }
 
 

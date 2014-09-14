@@ -77,9 +77,31 @@
 				  </ul>
 				</span>
 
+
+				{{#if checkCurrentMode 'onOff'}}
+					<span class="dropdown lrSpacer">
+					<label>onOff filter: </label>
+					  <button class="btn btn-default dropdown-toggle" type="button" id="modeFilter" data-toggle="dropdown">
+					    {{currentFilter}}
+					    <span class="caret"></span>
+					  </button>
+					  <ul class="dropdown-menu" role="menu" aria-labelledby="onOffFilter">
+					    
+					  	{{#each onOffFilters}}
+					    <li><a role="menuitem" class="oofilterItem" href="#" id="{{this}}">{{this}}</a></li>
+					    {{/each}}
+
+					  </ul>
+					</span>
+
+				
+				{{else}}
+
+				{{/if}}
+
+
 				<label for="invert">Invert selection: </label>
 				<input type="checkbox" id="invert">
-		
 
 			</form>
 		</div>
@@ -92,17 +114,23 @@
 			  <thead>
 			    <th>id</th>
 			    <th>view</th>
+			    <th>on</th>
+			    <th>off</th>
 			  </thead>
 				{{#each selectedPlayers}}
 					{{#if this.isSelected}}
 					<tr class="selected">
 						<td>{{this._id}}</td>
 						<td>{{this.view}}</td>
+						<td>{{this.on}}</td>
+						<td>{{this.off}}</td>
 					</tr>
 					{{else}}
 					<tr>
 						<td>{{this._id}}</td>
 						<td>{{this.view}}</td>
+						<td>{{this.on}}</td>
+						<td>{{this.off}}</td>
 					</tr>
 					{{/if}}
 				{{/each}}
@@ -274,14 +302,16 @@
 <template name="su_pwtCtrls">
 	<div class= "tbSpacer">
 		<label for="oo_minF">Min Freq: </label>
-		<input id="oo_minF" class="numbersInput" type="number" min="50" max="3000" value="50.0" step="10">
-		<label for="oo_maxF">Max Freq: </label>
-		<input id="oo_maxF" class="numbersInput" type="number" min="100" max="4000" value="1000.0" step="10">
+		<input id="oo_minF" class="numbersInput" type="number" min="32" max="108" value="32" step="1">
+		<label for="oo_fRng">Freq Range: </label>
+		<input id="oo_fRng" class="numbersInput" type="number" min="0" max="60" value="12" step="1">
 	</div>
 
 	<div class= "tbSpacer">
 		<label for="oo_noiseFreq">Noise Freq: </label>
 		<input id="oo_noiseFreq" class="numbersInput" type="number" min="5" max="50" value="20.0" step="1">
+		<label for="oo_nFreqV">Noise Freq Variance: </label>
+		<input id="oo_nFreqV" class="numbersInput" type="number" min="0" max="1.0" value="0.0" step="0.05">
 	</div>
 </template>
 
@@ -294,6 +324,8 @@
 		<input id="oo_envDur" class="numbersInput" type="number" min="0.25" max="15" value="1" step="0.25">
 		<label for="oo_endPosR">endPosR: </label>
 		<input id="oo_endPosR" class="numbersInput" type="number" min="0.5" max="0.8" value="0.8" step="0.05">
+		<label for="oo_variance">variance: </label>
+		<input id="oo_variance" class="numbersInput" type="number" min="0.0" max="0.5" value="0.0" step="0.05">
 	</div>
 
 </template>

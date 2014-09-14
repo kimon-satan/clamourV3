@@ -1,24 +1,60 @@
 /* CSS declarations go here */
 
-@font-face {
-    font-family: computer;
-    src: url(256bytes.ttf);
-}
 
 @font-face {
     font-family: peter;
-    src: url(peter.ttf);
+    src: url(Adamina-Regular.ttf);
 }
 
 @font-face {
-    font-family: heather;
-    src: url(mytype.ttf);
+    font-family: graham;
+    src: url(Florsn33.ttf);
 }
 
 @font-face {
     font-family: rachel;
     src: url(simplysquare.ttf);
 }
+
+@font-face {
+    font-family: catherine;
+    src: url(print_clearly.ttf);
+}
+
+@font-face {
+    font-family: bridget;
+    src: url(alwaysforever.ttf);
+}
+
+
+
+
+@font-face {
+    font-family: ray;
+    src: url(MontereyFLF.ttf);
+}
+
+@font-face {
+    font-family: ryan;
+    src: url(prep.ttf);
+}
+
+@font-face {
+    font-family: paul;
+    src: url(QuarcaCondRegularItalic.otf);
+}
+
+@font-face {
+    font-family: kate;
+    src: url(QuarcaCondThin.otf);
+}
+
+@font-face {
+    font-family: heather;
+    src: url(RockoUltraFLF.ttf);
+}
+
+
 
 @-webkit-keyframes fadeInOut {
     0% {
@@ -55,21 +91,19 @@ body{
 
 }
 
-.peterUK{
+.peterUK{font-family: "peter", sans-serif;}
+.grahamUK{font-family: "graham", sans-serif;}
+.rachelUK{font-family: "rachel", sans-serif;}
+.catherineUK{font-family: "catherine", sans-serif;}
+.bridgetUK{font-family: "bridget", sans-serif;}
 
-    font-family: "peter", sans-serif;
 
-}
+.rayUS{font-family: "ray", sans-serif;}
+.ryanUS{font-family: "ryan", sans-serif;}
+.paulUS{font-family: "paul", sans-serif;}
 
-.rachelUK{
-
-     font-family: "rachel", sans-serif;
-}
-
-.heatherUS{
-
-     font-family: "heather", sans-serif;
-}
+.kateUS{font-family: "kate", sans-serif;}
+.heatherUS{font-family: "heather", sans-serif;}
 
 .scrollable{
     max-height: 700px;
@@ -142,7 +176,7 @@ input[type='checkbox']:checked {
 
 #numberBox{
 
-
+    opacity: 0.35;
 	display: block;
 	background: white;
 	text-decoration: none;
