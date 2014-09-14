@@ -32,6 +32,7 @@ var offOptions = {
 };
 
 voices = ['peterUK' , 'rachelUK' , 'heatherUS'];
+synths = ['playWithTone', 'granPulseNoise'];
 
 
 
@@ -77,6 +78,9 @@ Template.clamour.isScreen = function(mode){
 }
 
 UI.registerHelper('voice', function(){return Session.get("voice")});
+
+
+/*-----------------------------------------------------NUMBERS ----------------------------------------*/
 
 Template.numbers.events({
   
@@ -153,7 +157,22 @@ Template.numbers.events({
 
 Template.numbers.currNumber = function(){return Session.get('currNumber');}
 
+function setNumbersOptions(options){
+  if(typeof options.lockOn !== "undefined")numbersOptions.lockOn = options.lockOn;
+  if(typeof options.startIndex !== "undefined")numbersOptions.startIndex = parseInt(options.startIndex);
+  if(typeof options.endIndex !== "undefined")numbersOptions.endIndex = parseInt(options.endIndex);
+  if(typeof options.volume !== "undefined")numbersOptions.volume = parseFloat(options.volume);
+  if(typeof options.pan !== "undefined")numbersOptions.pan = parseFloat(options.pan);
+  if(typeof options.splay !== "undefined"){numbersOptions.splay = parseFloat(options.splay);}
+  if(typeof options.fadeTime !== "undefined")numbersOptions.fadeTime = parseFloat(options.fadeTime);
+  if(typeof options.isRandomVoice !== "undefined")numbersOptions.isRandomVoice = options.isRandomVoice;
+  if(typeof options.voice !== "undefined"){numbersOptions.voice = options.voice;}
+}
+
+/*-----------------------------------------------CHAT --------------------------------------------*/
 Template.chat.chatText = function(){return Session.get('chatText');}
+
+/*---------------------------------------------------ON OFF-----------------------------------------*/
 
 Template.onOff.isOnButton = function(){return Session.get('onOffButtons').isOnButton;}
 Template.onOff.isOffButton = function(){return Session.get('onOffButtons').isOffButton;}
@@ -175,18 +194,28 @@ Template.onOff.events({
     
     oo.isOnActive = true;
     Session.set('onOffButtons', oo);
-    console.log(onOptions);
+ 
 
     var soundOptions = {
 
       msg: 'on',
       voice: Session.get('voice').on,
+      synth: onOptions.synth,
       pan: parseFloat(onOptions.pan) + parseFloat(onOptions.splay * panOffset),
       v_volume: onOptions.vVolume,
       s_volume: onOptions.sVolume,
-      freq: Math.random() * (onOptions.maxFreq - onOptions.minFreq) + parseInt(onOptions.minFreq)
+
 
     };
+
+    if(onOptions.synth == 'playWithTone'){
+      soundOptions.freq =  Math.random() * (onOptions.maxFreq - onOptions.minFreq) + parseInt(onOptions.minFreq),
+      soundOptions.noiseFreq = onOptions.noiseFreq
+    }else if(onOptions.synth == 'granPulseNoise'){
+      soundOptions.trigRate = onOptions.trigRate;
+      soundOptions.envDur = onOptions.envDur;
+      soundOptions.endPosR = onOptions.endPosR;
+    }
 
     Meteor.call('onOffPing', soundOptions);
 
@@ -235,6 +264,9 @@ Template.onOff.events({
 
 });
 
+
+
+/*-------------------------------------RECIEVERS-------------------------------------------*/
 
 msgStream.on('userMessage', function(message){
 
@@ -322,19 +354,9 @@ msgStream.on('message', function(message){
 });
 
 
-function setNumbersOptions(options){
-  if(typeof options.lockOn !== "undefined")numbersOptions.lockOn = options.lockOn;
-  if(typeof options.startIndex !== "undefined")numbersOptions.startIndex = parseInt(options.startIndex);
-  if(typeof options.endIndex !== "undefined")numbersOptions.endIndex = parseInt(options.endIndex);
-  if(typeof options.volume !== "undefined")numbersOptions.volume = parseFloat(options.volume);
-  if(typeof options.pan !== "undefined")numbersOptions.pan = parseFloat(options.pan);
-  if(typeof options.splay !== "undefined"){numbersOptions.splay = parseFloat(options.splay);}
-  if(typeof options.fadeTime !== "undefined")numbersOptions.fadeTime = parseFloat(options.fadeTime);
-  if(typeof options.isRandomVoice !== "undefined")numbersOptions.isRandomVoice = options.isRandomVoice;
-  if(typeof options.voice !== "undefined"){numbersOptions.voice = options.voice;}
-}
 
 
+/*---------------------------------------------------------GENERIC FUNCTIONS-----------------------------------*/
 
 function randCol(){
 

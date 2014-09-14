@@ -41,6 +41,7 @@ Template.su.created = function(){
   Session.set("currentMode", "none");
   Session.set("numbersVoice", voices[0]);
   Session.set("onOffVoice", voices[0]);
+  Session.set('currentSynth', synths[0]);
 
   Meteor.defer(function(){
 
@@ -347,26 +348,45 @@ Template.su_onOff.events({
     msgStream.emit('message', {type: 'numbersChange', 'value': options});
 
     e.preventDefault();
-},
+  },
 
-'click .voiceItem':function(e){
+  'click .voiceItem':function(e){
 
-  if(isRandVoice_oo){
-      isRandVoice_oo = false;
-      $('#randVoices_oo').addClass('btn-default');
-      $('#randVoices_oo').removeClass('btn-primary');
+    if(isRandVoice_oo){
+        isRandVoice_oo = false;
+        $('#randVoices_oo').addClass('btn-default');
+        $('#randVoices_oo').removeClass('btn-primary');
+    }
+
+    Session.set("onOffVoice", e.currentTarget.id);
+
+    e.preventDefault();
+  },
+
+  'click .synthItem':function(e){
+
+    Session.set('currentSynth', e.currentTarget.id);
+    e.preventDefault();
+
   }
-
-  Session.set("onOffVoice", e.currentTarget.id);
-  var options = {voice: e.currentTarget.id, isRandVoice_oo: isRandVoice_oo};
-
-  e.preventDefault();
-},
 
 });
 
+
 Template.su_onOff.voices = function(){
   return voices;
+}
+
+Template.su_onOff.currentSynth = function(){
+  return Session.get('currentSynth');
+}
+
+Template.su_onOff.isSynth = function(s){
+  return (Session.get('currentSynth') == s);
+}
+
+Template.su_onOff.synths = function(){
+  return synths;
 }
 
 Template.su_onOff.currentVoice = function(){return Session.get("onOffVoice")}
@@ -374,14 +394,24 @@ Template.su_onOff.currentVoice = function(){return Session.get("onOffVoice")}
 function getOnOptions(){
 
     var onOptions = {};
+    onOptions.synth = Session.get('currentSynth');
     onOptions.isRandomVoice = isRandVoice_oo;
     onOptions.voice = Session.get('onOffVoice');
-    onOptions.minFreq = $('#oo_minF').val();
-    onOptions.maxFreq = $('#oo_maxF').val();
-    onOptions.vVolume = $('#oo_Vvolume').val();
-    onOptions.sVolume = $('#oo_Svolume').val();
     onOptions.pan = $('#oo_pan').val();
     onOptions.splay = $('#oo_splay').val();
+    onOptions.vVolume = $('#oo_Vvolume').val();
+    onOptions.sVolume = $('#oo_Svolume').val();
+
+    if(onOptions.synth == 'playWithTone'){
+      onOptions.minFreq = $('#oo_minF').val();
+      onOptions.maxFreq = $('#oo_maxF').val();
+      onOptions.noiseFreq = $('#oo_noiseFreq').val();
+    }else if(onOptions.synth == 'granPulseNoise'){
+      onOptions.trigRate = $('#oo_trigRate').val();
+      onOptions.envDur = $('#oo_envDur').val();
+      onOptions.endPosR = $('#oo_endPosR').val();
+    }
+
 
     return onOptions;
 

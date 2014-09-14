@@ -119,10 +119,35 @@ Meteor.methods({
 
 		if(options.msg == 'on'){
 
-			var buf = osc.toBuffer({
-				address: "/noteOn",
-				args: [options.voice, options.v_volume, options.s_volume, options.pan, options.freq]
-		  	});
+			if(options.synth == 'playWithTone'){
+				var buf = osc.toBuffer({
+					address: "/noteOn",
+					args: [
+						options.voice, 
+						options.synth, 
+						options.v_volume, 
+						options.s_volume, 
+						options.pan, 
+						options.freq, 
+						options.noiseFreq
+					]
+			  	});
+			}else{
+				var buf = osc.toBuffer({
+					address: "/noteOn",
+					args: [
+						options.voice, 
+						options.synth, 
+						options.v_volume, 
+						options.s_volume, 
+						options.pan, 
+						options.trigRate, 
+						options.envDur,
+						options.endPosR
+					]
+			  	});
+
+			}	
 
 		}else{
 
