@@ -88,17 +88,32 @@
 					  <ul class="dropdown-menu" role="menu" aria-labelledby="onOffFilter">
 					    
 					  	{{#each onOffFilters}}
-					    <li><a role="menuitem" class="oofilterItem" href="#" id="{{this}}">{{this}}</a></li>
+					    <li><a role="menuitem" class="ooFilterItem" href="#" id="{{this}}">{{this}}</a></li>
 					    {{/each}}
 
 					  </ul>
 					</span>
 
-				
-				{{else}}
 
 				{{/if}}
 
+				{{#if checkCurrentMode 'numbers'}}
+					<span class="dropdown lrSpacer">
+					<label>voice filter: </label>
+					  <button class="btn btn-default dropdown-toggle" type="button" id="modeFilter" data-toggle="dropdown">
+					    {{currentFilter}}
+					    <span class="caret"></span>
+					  </button>
+					  <ul class="dropdown-menu" role="menu" aria-labelledby="nFilter">
+					    
+					  	{{#each voiceFilters}}
+					    <li><a role="menuitem" class="nFilterItem" href="#" id="{{this}}">{{this}}</a></li>
+					    {{/each}}
+
+					  </ul>
+					</span>
+
+				{{/if}}
 
 				<label for="invert">Invert selection: </label>
 				<input type="checkbox" id="invert">
@@ -114,25 +129,34 @@
 			  <thead>
 			    <th>id</th>
 			    <th>view</th>
+			    {{#if checkCurrentMode 'onOff'}}
 			    <th>on</th>
 			    <th>off</th>
+			    {{/if}}
+
+	    		{{#if checkCurrentMode 'numbers'}}
+					<th>voice</th>
+				{{/if}}
+
 			  </thead>
 				{{#each selectedPlayers}}
-					{{#if this.isSelected}}
-					<tr class="selected">
+
+					<tr class="{{getSelected this}}">
+			
 						<td>{{this._id}}</td>
 						<td>{{this.view}}</td>
-						<td>{{this.on}}</td>
-						<td>{{this.off}}</td>
+
+						{{#if checkCurrentMode 'onOff'}}
+							<td>{{this.on}}</td>
+							<td>{{this.off}}</td>
+						{{/if}}
+
+						{{#if checkCurrentMode 'numbers'}}
+							<td>{{this.voice}}</td>
+						{{/if}}
+
 					</tr>
-					{{else}}
-					<tr>
-						<td>{{this._id}}</td>
-						<td>{{this.view}}</td>
-						<td>{{this.on}}</td>
-						<td>{{this.off}}</td>
-					</tr>
-					{{/if}}
+					
 				{{/each}}
 			</table>
 			</div>
@@ -182,6 +206,7 @@
 						  </ul>
 						</span>
 						<a href="#" id="randVoices_num" class="btn btn-sm btn-default tbSpacer">randomVoices</a>
+						<a href="#" id="notRandVoices_num" class="btn btn-sm btn-default tbSpacer">randOff</a>
 
 				</div>
 				<br/>

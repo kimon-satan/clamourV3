@@ -43,6 +43,7 @@ Template.su.created = function(){
   Session.set("numbersVoice", voices[0]);
   Session.set("onOffVoice", voices[0]);
   Session.set('currentSynth', synths[0]);
+  Session.set('currentFilter', 'none');
 
   Meteor.defer(function(){
 
@@ -82,6 +83,19 @@ Template.su_players.events({
   'click .filterItem':function(e){
 
     Session.set("currentMode", e.currentTarget.id);
+    Session.set("currentFilter", "none");
+    e.preventDefault();
+  },
+
+  'click .ooFilterItem':function(e){
+
+    Session.set("currentFilter", e.currentTarget.id);
+    e.preventDefault();
+  },
+
+  'click .nFilterItem':function(e){
+
+    Session.set("currentFilter", e.currentTarget.id);
     e.preventDefault();
   }
 
@@ -90,8 +104,10 @@ Template.su_players.events({
 });
 
 Template.su_players.playerModes = function(){
-  return ["numbers" , "chat", "onOff", "none"];
+  return ["numbers" , "chat", "onOff", "not_numbers", "not_chat" , "not_onOff", "none"];
 }
+
+Template.su_players.getSelected = function(p){if(p.isSelected)return "selected"}
 Template.su_players.checkCurrentMode = function(m){return (Session.get("currentMode") == m)}
 
 Template.su_players.selectedPlayers = function(){
@@ -101,7 +117,18 @@ Template.su_players.selectedPlayers = function(){
 Template.su_players.currentMode = function(){return Session.get("currentMode")}
 Template.su_players.currentFilter = function(){return Session.get("currentFilter")}
 
-Template.su_players.onOffFilters = function(){return ["noOn","hasOn", "noOff", "hasOff"]}
+Template.su_players.onOffFilters = function(){return ["none", "noOn","hasOn", "noOff", "hasOff"]}
+Template.su_players.voiceFilters = function(){
+
+  var filters = ["none"];
+  for(v in voices){
+    filters.push(voices[v]);
+    filters.push("not_" + voices[v]);
+  }
+
+  return filters;
+
+}
 
 function selectAllPlayers(){
 
@@ -117,18 +144,54 @@ function selectSomePlayers(){
   var uids = [];
   var invert = $('#invert').prop('checked');
 
-   UserData.find().forEach(function(e){UserData.update(e._id, {$set: {isSelected: false}})});
+   UserData.find().forEach(function(e){UserData.update(e._id, {$set: {isSelected: invert}})});
 
   var searchObj = {};
 
-  if(Session.get("currentMode")!= "none"){
-
-    if(!$('#invert').prop('checked')){
+  switch(Session.get("currentMode")){
+    case "numbers": 
+    case "chat": 
+    case "onOff": 
       searchObj.view = Session.get("currentMode");
-    }else{
-      searchObj.view = {$ne: Session.get("currentMode")}
+    break;
+    case "not_numbers":
+    case "not_chat": 
+    case "not_onOff": 
+      searchObj.view = {$ne: Session.get("currentMode").substring(4)}
+    break;
+
+  }
+
+  if(Session.get("currentMode") == "onOff"){
+    switch(Session.get("currentFilter")){
+        case "hasOn": 
+        searchObj.on = true;
+        break;
+        case "hasOff": 
+        searchObj.off = true;
+        break;
+        case "noOn": 
+        searchObj.on = {$ne: true}
+        break;
+        case "noOff": 
+        searchObj.off = {$ne: true}
+        break;
+    }
+  }else if(Session.get("currentMode") == "numbers"){
+    if(Session.get("currentFilter") != "none"){
+
+      if(Session.get("currentFilter").substring(0,4) == "not_"){
+        searchObj.voice =  {$ne: Session.get("currentFilter").substring(4)}
+      }else{
+        searchObj.voice = Session.get("currentFilter");
+      }
+
     }
   }
+      
+
+
+    
 
 
   UserData.find(searchObj).forEach(function(e){
@@ -139,9 +202,8 @@ function selectSomePlayers(){
 
   var numPlayers = Math.min(uids.length , $('#numPlayers').val());
 
-
   for(var i = 0; i < numPlayers; i++){
-    UserData.update(uids[i], {$set: {isSelected: true}});
+    UserData.update(uids[i], {$set: {isSelected: !invert}});
   }
 
 }
@@ -254,6 +316,18 @@ Template.su_numbers.events({
     isRandVoice_Num = true;
     $('#randVoices_num').removeClass('btn-default');
     $('#randVoices_num').addClass('btn-primary');
+    var options = {isRandomVoice: isRandVoice_Num};
+    options = checkSendAll(options);
+    msgStream.emit('message', {type: 'numbersChange', 'value': options});
+
+    e.preventDefault();
+},
+
+'click #notRandVoices_num': function(e){
+
+    isRandVoice_Num = false;
+    $('#randVoices_num').addClass('btn-default');
+    $('#randVoices_num').removeClass('btn-primary');
     var options = {isRandomVoice: isRandVoice_Num};
     options = checkSendAll(options);
     msgStream.emit('message', {type: 'numbersChange', 'value': options});

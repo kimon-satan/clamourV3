@@ -65,6 +65,8 @@ Template.clamour.created = function(){
 
   Session.set('voice', v);
 
+  UserData.update(Meteor.user()._id, {$set: {voice: v.numbers}});
+
   var oo = {isOnButton: false, isOnActive: false, isOffButton: false};
   Session.set("onOffButtons", oo);
 
@@ -123,6 +125,8 @@ Template.numbers.events({
             var v = Session.get('voice');
             v.numbers = (numbersOptions.isRandomVoice) ? chooseRandomVoice() : numbersOptions.voice;
             Session.set('voice', v);
+            numbersOptions.voice = v.numbers;
+            UserData.update(Meteor.user()._id, {$set: {voice: v.numbers}});
             
             cn = numbersOptions.startIndex;
           }
@@ -137,6 +141,8 @@ Template.numbers.events({
             var v = Session.get('voice');
             v.numbers = (numbersOptions.isRandomVoice) ? chooseRandomVoice() : numbersOptions.voice;
             Session.set('voice', v);
+            numbersOptions.voice = v.numbers;
+            UserData.update(Meteor.user()._id, {$set: {voice: v.numbers}});
 
           }
         }
@@ -173,6 +179,28 @@ function setNumbersOptions(options){
 Template.chat.chatText = function(){return Session.get('chatText');}
 
 /*---------------------------------------------------ON OFF-----------------------------------------*/
+
+Template.onOff.created = function(){
+
+  UserData.update(Meteor.user()._id, {$set: {off: false, on: false}});
+  var oo = Session.get('onOffButtons');
+  oo.isOnButton = false;
+  oo.isOnActive = false;
+  oo.isOffButton = false;
+  Session.set('onOffButtons', oo);
+    
+}
+
+Template.onOff.destroyed = function(){
+
+  UserData.update(Meteor.user()._id, {$set: {off: false, on: false}});
+  var oo = Session.get('onOffButtons');
+  oo.isOnButton = false;
+  oo.isOnActive = false;
+  oo.isOffButton = false;
+  Session.set('onOffButtons', oo);
+
+}
 
 Template.onOff.isOnButton = function(){return Session.get('onOffButtons').isOnButton;}
 Template.onOff.isOffButton = function(){return Session.get('onOffButtons').isOffButton;}
@@ -240,7 +268,7 @@ Template.onOff.events({
 
     };
 
-      var oo = Session.get('onOffButtons');
+    var oo = Session.get('onOffButtons');
     if(oo.isOnActive){
       oo.isOnButton = false;
       oo.isOnActive = false;
@@ -251,6 +279,8 @@ Template.onOff.events({
 
       oo.isOffButton = false;
       Session.set('onOffButtons', oo);
+      UserData.update(Meteor.user()._id, {$set: {off: false, on: false}});
+
     },300);
 
 
@@ -280,6 +310,7 @@ msgStream.on('userMessage', function(message){
       oo.isOnButton = false;
       oo.isOnActive = false;
       Session.set('onOffButtons', oo);
+      UserData.update(Meteor.user()._id, {$set: {off: false}});
     }
 
   }
@@ -298,6 +329,8 @@ msgStream.on('message', function(message){
     var v = Session.get('voice');
     v.numbers = (numbersOptions.isRandomVoice) ?  chooseRandomVoice() : numbersOptions.voice;
     Session.set('voice', v);
+    numbersOptions.voice = v.numbers;
+    UserData.update(Meteor.user()._id, {$set: {voice: v.numbers}});
 
 
   }
