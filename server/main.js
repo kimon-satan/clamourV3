@@ -15,6 +15,14 @@ Meteor.startup(function(){
 		Accounts.createUser({username: 'clamourAdmin', password: 'ontap'});
 	}
 
+	if(UserGroups.find().fetch().length == 0){
+
+		for(var i = 0; i < 6; i++){
+			UserGroups.insert({index: "grp_" + i , users: [], isSelected: false});
+		}
+
+	}
+
 
 });
 
@@ -47,6 +55,14 @@ Meteor.publish('AllPlayers', function(userId){
 		return Meteor.users.find({}); 
 	}
 });
+
+Meteor.publish('UserGroups', function(userId){
+	if(checkAdmin(userId)){
+		this.ready();
+		return UserGroups.find({}); 
+	}
+});
+
 
 Meteor.publish('MyAccount', function(userId){
 	
@@ -166,12 +182,12 @@ Meteor.methods({
 
 		if(checkAdmin(userId)){
 
-			UserData.find({isSelected: true}).forEach(function(e){
+			Meteor.users.remove({'profile.role': 'player'});
 
-				Meteor.users.remove(e._id);
-				UserData.remove(e._id);
+			UserData.remove({});
 
-			});
+			UserGroups.update({},{$set: {users:[]}},{multi: true});
+
 			
 		}
 
@@ -185,6 +201,7 @@ Meteor.methods({
 function checkAdmin(userId){
 
 	var user = Meteor.users.findOne(userId);
+	if(!user)return false;
 	if(user.profile.role == "admin"){
 		return true;
 	}else{

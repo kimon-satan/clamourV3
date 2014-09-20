@@ -1,4 +1,21 @@
 UserData = new Meteor.Collection('UserData');
+UserGroups = new Meteor.Collection('UserGroups');
+
+UserGroups.allow({
+
+	update: adminTest,
+	insert: adminTest,
+	remove: adminTest
+
+});
+
+UserGroups.deny({
+		
+	update: function(user){return !adminTest(user);},
+	insert: function(user){return !adminTest(user);},
+	remove: function(user){return !adminTest(user);}	
+
+});
 
 UserData.allow({
 

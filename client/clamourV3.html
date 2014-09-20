@@ -52,6 +52,10 @@
 		{{>onOff}}
 	{{/if}}
 
+	{{#if isScreen 'offTransition'}}
+		{{>offTransition}}
+	{{/if}}
+
 </template>
 
 <template name="wait">
@@ -65,9 +69,11 @@
 
 <template name="numbers">
   
-  <a href= "#" id="numberBox">
-  	<div id="num" class="{{voice.numbers}}">{{currNumber}}</div>
-  </a>
+  {{#unless isPause}}
+	  <a href= "#" id="numberBox">
+	  	<div id="num" class="{{voice.numbers}}">{{currNumber}}</div>
+	  </a>
+  {{/unless}}
 
 </template>
 
@@ -99,4 +105,9 @@
 
 </template>
 
+<template name="offTransition">
+	<a href= "#" id="offBox">
+	  	<div id="offT" class="{{currentVoice}} bigText">off</div>
+	</a>
+</template>
 

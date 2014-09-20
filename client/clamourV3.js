@@ -15,7 +15,8 @@ var numbersOptions = {
   volume: 0.2,
   fadeTime: 0.5,
   voice: 'peterUK',
-  isRandomVoice: false
+  isRandomVoice: false,
+  resetPause: 0.0
 
 };
 
@@ -30,6 +31,8 @@ var offOptions = {
     voice: 'peterUK',
 
 };
+
+var offTOptions;
 
 voices = ['peterUK' , 'grahamUK', 'rachelUK' , 'catherineUK', 'bridgetUK',  'rayUS', 'ryanUS', 'paulUS', 'heatherUS', 'kateUS'];
 synths = ['playWithTone', 'granPulseNoise'];
@@ -83,6 +86,10 @@ UI.registerHelper('voice', function(){return Session.get("voice")});
 
 
 /*-----------------------------------------------------NUMBERS ----------------------------------------*/
+
+Template.numbers.created = function(){
+  Session.set('isPause', false);
+}
 
 Template.numbers.events({
   
@@ -162,6 +169,7 @@ Template.numbers.events({
 });
 
 Template.numbers.currNumber = function(){return Session.get('currNumber');}
+Template.numbers.isPause = function(){return Session.get('isPause');}
 
 function setNumbersOptions(options){
   if(typeof options.lockOn !== "undefined")numbersOptions.lockOn = options.lockOn;
@@ -173,6 +181,7 @@ function setNumbersOptions(options){
   if(typeof options.fadeTime !== "undefined")numbersOptions.fadeTime = parseFloat(options.fadeTime);
   if(typeof options.isRandomVoice !== "undefined")numbersOptions.isRandomVoice = options.isRandomVoice;
   if(typeof options.voice !== "undefined"){numbersOptions.voice = options.voice;}
+  if(typeof options.resetPause !== "undefined"){numbersOptions.resetPause = options.resetPause;}
 }
 
 /*-----------------------------------------------CHAT --------------------------------------------*/
@@ -263,7 +272,7 @@ Template.onOff.events({
 
       msg: 'off',
       voice: Session.get('voice').off,
-      pan: offOptions.pan,
+      pan: offOptions.pan + parseFloat(onOptions.splay * panOffset),
       volume: offOptions.volume
 
     };
@@ -296,6 +305,41 @@ Template.onOff.events({
 
 });
 
+/*--------------------------------------------------------------------------------------*/
+
+Template.offTransition.events({
+
+  'touchstart #offBox, click #offBox' : function(e){
+
+    var fstring = 'fadeInOut 0.3s forwards'
+   $('#offBox').css('-webkit-animation', fstring ); 
+   $('#offBox').css('animation', fstring); 
+
+    var soundOptions = {
+
+      msg: 'off',
+      voice: Session.get('offTVoice'),
+      pan: offTOptions.pan + parseFloat(offTOptions.splay * panOffset),
+      volume: offTOptions.vol
+
+    };
+
+    Meteor.call('onOffPing', soundOptions);
+
+    msgStream.emit('userMessage', {type: 'offTransition', 'value': {}});
+
+    window.setTimeout(function(){
+      Session.set('screenMode', "onOff");
+      UserData.update(Meteor.user()._id, {$set: {view: Session.get('screenMode')}});
+      UserData.update(Meteor.user()._id, {$set: {off: false, on: false}});
+    },300);
+    
+    e.preventDefault();
+
+  }
+});
+
+Template.offTransition.currentVoice = function(){return Session.get('offTVoice');}
 
 
 /*-------------------------------------RECIEVERS-------------------------------------------*/
@@ -315,15 +359,32 @@ msgStream.on('userMessage', function(message){
 
   }
 
+  if(message.type == 'offTransition'){
+      Session.set('screenMode', "onOff");
+      var oo = Session.get('onOffButtons');
+        oo.isOffButton = false;
+        oo.isOnButton = false;
+        oo.isOnActive = false;
+      Session.set('onOffButtons', oo);
+      UserData.update(Meteor.user()._id, {$set: {off: false, on: false}});
+      UserData.update(Meteor.user()._id, {$set: {view: Session.get('screenMode')}});
+
+  }
+
 });
 
 msgStream.on('message', function(message){
 
-
-
   if(message.type == 'numbersReset'){
     
+    
     setNumbersOptions(message.value);
+    if(numbersOptions.resetPause > 0){
+        Session.set('isPause', true);
+      setTimeout(function(){
+        Session.set('isPause', false);
+      },numbersOptions.resetPause * 1000)
+    }
     Session.set('currNumber' , numbersOptions.startIndex);
 
     var v = Session.get('voice');
@@ -342,8 +403,11 @@ msgStream.on('message', function(message){
   }
 
   if(message.type == 'screenChange'){ 
+
+
     Session.set('screenMode', message.value);
     UserData.update(Meteor.user()._id, {$set: {view: Session.get('screenMode')}});
+
   }
 
   if(message.type == 'addOn'){
@@ -389,6 +453,13 @@ msgStream.on('message', function(message){
   }
 
   if(message.type == 'updateChat'){ Session.set('chatText', message.value);}
+
+  if(message.type == 'offTransition'){
+      Session.set("screenMode", "offTransition");
+      UserData.update(Meteor.user()._id, {$set: {view: Session.get('screenMode')}});
+      offTOptions = message.value;
+      Session.set("offTVoice", message.value.voice);
+  }
 
   
 

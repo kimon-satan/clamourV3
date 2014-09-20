@@ -38,9 +38,11 @@ Template.su.created = function(){
 
   Meteor.subscribe("UserData", Meteor.user()._id);
   Meteor.subscribe("AllPlayers", Meteor.user()._id);
+  Meteor.subscribe("UserGroups", Meteor.user()._id);
 
   Session.set("currentMode", "none");
   Session.set("numbersVoice", voices[0]);
+  Session.set("offTVoice", voices[0]);
   Session.set("onOffVoice", voices[0]);
   Session.set('currentSynth', synths[0]);
   Session.set('currentFilter', 'none');
@@ -69,14 +71,17 @@ Template.su_players.events({
     e.preventDefault();
   },
 
+  'click #deselect':function(e){
+    deselectAllPlayers();
+    e.preventDefault();
+  },
 
-  'change #allPlayers, click #reselect':function(e){
 
-    if($('#allPlayers').prop('checked')){
-      selectAllPlayers();
-    }else{
-      selectSomePlayers();
-    }
+  'change #allPlayers, click #reselect, click #numPlayers':function(e){
+
+      if(e.currentTarget.id == 'numPlayers'){$('#allPlayers').prop('checked', false)}
+      selectSomePlayers($('#allPlayers').prop('checked'));
+
 
   },
 
@@ -84,18 +89,66 @@ Template.su_players.events({
 
     Session.set("currentMode", e.currentTarget.id);
     Session.set("currentFilter", "none");
+    selectSomePlayers($('#allPlayers').prop('checked'));
     e.preventDefault();
   },
 
   'click .ooFilterItem':function(e){
 
     Session.set("currentFilter", e.currentTarget.id);
+     selectSomePlayers($('#allPlayers').prop('checked'));
     e.preventDefault();
   },
 
   'click .nFilterItem':function(e){
 
     Session.set("currentFilter", e.currentTarget.id);
+     selectSomePlayers($('#allPlayers').prop('checked'));
+    e.preventDefault();
+  },
+
+  'click #invert':function(e){
+     selectSomePlayers($('#allPlayers').prop('checked'));
+   },
+
+  'click .grpSel':function(e){
+
+    var idx = e.currentTarget.id.substring(4);
+    var ug = UserGroups.findOne({index: idx});
+
+    for(var i = 0; i < ug.users.length; i++){
+      UserData.update(ug.users[i], {$set:{isSelected: true}});
+    }
+
+
+    e.preventDefault();
+  },
+
+  'click .grpDSel':function(e){
+    
+    var idx = e.currentTarget.id.substring(4);
+    var ug = UserGroups.findOne({index: idx});
+
+    for(var i = 0; i < ug.users.length; i++){
+      UserData.update(ug.users[i], {$set:{isSelected: false}});
+    }
+
+    e.preventDefault();
+  },
+
+  'click .grpSave':function(e){
+    
+    var idx = e.currentTarget.id.substring(4);
+    var ug = UserGroups.findOne({index: idx});
+    var sel = UserData.find({isSelected: true},{fields: {isSelected: 1}}).fetch();
+
+
+    ug.users = [];
+    for(var i = 0; i < sel.length; i++){
+      ug.users.push(sel[i]._id);
+    }
+
+    UserGroups.update(ug._id, {$set: {users: ug.users}});
     e.preventDefault();
   }
 
@@ -107,10 +160,22 @@ Template.su_players.playerModes = function(){
   return ["numbers" , "chat", "onOff", "not_numbers", "not_chat" , "not_onOff", "none"];
 }
 
-Template.su_players.getSelected = function(p){if(p.isSelected)return "selected"}
-Template.su_players.checkCurrentMode = function(m){return (Session.get("currentMode") == m)}
+Template.su_players.playerGroups = function(){
+  return UserGroups.find({},{sort:{index: 1}}).fetch();
+}
 
-Template.su_players.selectedPlayers = function(){
+Template.su_players.population = function(){
+  return this.users.length;
+}
+
+Template.su_players.getGroupSelected = function(){
+  return this.isSelected;
+}
+
+Template.su_playerTable.getSelected = function(p){if(p.isSelected)return "selected"}
+UI.registerHelper('checkCurrentMode', function(m){return (Session.get("currentMode") == m)});
+
+Template.su_playerTable.selectedPlayers = function(){
   return UserData.find({},{sort: {isSelected: -1}}).fetch();
 }
 
@@ -130,16 +195,16 @@ Template.su_players.voiceFilters = function(){
 
 }
 
-function selectAllPlayers(){
+function deselectAllPlayers(){
 
 
     Meteor.users.find({'profile.role': "player"}).forEach(function(e){
-      UserData.update(e._id,{$set: {isSelected: true}});
+      UserData.update(e._id,{$set: {isSelected: false}});
     });
 
 }
 
-function selectSomePlayers(){
+function selectSomePlayers(allPlayers){
 
   var uids = [];
   var invert = $('#invert').prop('checked');
@@ -198,12 +263,20 @@ function selectSomePlayers(){
     uids.push(e._id);
   });
 
-  shuffleArray(uids);
+  if(!allPlayers){
+    shuffleArray(uids);
 
-  var numPlayers = Math.min(uids.length , $('#numPlayers').val());
+    var numPlayers = Math.min(uids.length , $('#numPlayers').val());
 
-  for(var i = 0; i < numPlayers; i++){
-    UserData.update(uids[i], {$set: {isSelected: !invert}});
+    for(var i = 0; i < numPlayers; i++){
+      UserData.update(uids[i], {$set: {isSelected: !invert}});
+    }
+  }else{
+
+    for(var i = 0; i < uids.length; i++){
+      UserData.update(uids[i], {$set: {isSelected: !invert}});
+    }
+
   }
 
 }
@@ -245,9 +318,6 @@ Template.su_chat.events({
 
 /*--------------------------------------------------------numbers-------------------------------------------*/
 
-Template.su_numbers.voices = function(){
-  return voices;
-}
 
 Template.su_numbers.currentVoice = function(){return Session.get("numbersVoice")}
 
@@ -361,7 +431,6 @@ Template.su_numbers.events({
 }
 
 
-
 });
 
 function checkSendAll(options){
@@ -385,7 +454,8 @@ function getNumbersOptions(){
     fadeTime: $('#fadeTime').val(),
     isRandomVoice: isRandVoice_Num,
     splay: $('#splay').val(),
-    voice: Session.get('numbersVoice')
+    voice: Session.get('numbersVoice'),
+    resetPause: $('#resetPause').val()
 
   };
 
@@ -452,9 +522,9 @@ Template.su_onOff.events({
 });
 
 
-Template.su_onOff.voices = function(){
+UI.registerHelper('voices' , function(){
   return voices;
-}
+});
 
 Template.su_onOff.currentSynth = function(){
   return Session.get('currentSynth');
@@ -553,6 +623,33 @@ function getOffOptions(){
   return offOptions;
 
 }
+
+/*--------------------------------------------------------offTransition -------------------------------------*/
+Template.su_offTransition.currentVoice = function(){return Session.get("offTVoice")}
+
+Template.su_offTransition.events({
+
+  'click #offTInit':function(e){
+
+    var options = {
+      voice: Session.get("offTVoice"),
+      vol: $('#ot_volume').val(),
+      pan: $('#ot_pan').val(),
+      splay: $('#ot_splay').val()
+    }
+
+    msgStream.emit('message', {type: 'offTransition', 'value': options});
+    e.preventDefault();
+  },
+
+  'click .voiceItem':function(e){
+
+    Session.set("offTVoice", e.currentTarget.id);
+    e.preventDefault();
+
+  }
+
+});
 
 
 

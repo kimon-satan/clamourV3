@@ -26,6 +26,8 @@
 
 		{{>su_onOff}}
 
+		{{>su_offTransition}}
+
 		<br/><br/><br/><br/><br/>
 
 	</div>
@@ -33,6 +35,8 @@
 	<div class="col-md-6">
 
 		{{>su_players}}
+
+		{{>su_playerTable}}
 
 	</div>
 
@@ -48,15 +52,18 @@
 			<div class ="text-left">
 			<form role="form" class="form-inline">
 				
-				<a href="#" id="resetPlayers" class="btn btn-lg btn-danger tbSpacer">logout all</a>
-				
+				<div>
+				<a href="#" id="resetPlayers" class="btn btn-sm btn-danger tbSpacer">logout all</a>
+				</div>
+
 				<label for="numPlayers">Number of players</label>
 				<input id="numPlayers" type = "number" min="1" max="200" value="1">
 
-				<a href="#" id="reselect" class="btn btn-sm btn-success lrSpacer">reselect</a>
-
 				<label for="allPlayers">all players</label>
 				<input id="allPlayers" type="checkbox">
+
+				<a href="#" id="reselect" class="btn btn-sm btn-success lrSpacer">reselect</a>
+				<a href="#" id="deselect" class="btn btn-sm btn-warning lrSpacer">deselect</a>
 
 				<br/><br/>
 
@@ -121,7 +128,38 @@
 			</form>
 		</div>
 
-		
+		<h4>player groups</h4>
+		<table class="table">
+			<thead>
+			    <th>group</th>
+			    <th>population</th>
+			    <th>actions</th>
+			 </thead>
+			 {{#each playerGroups}}
+			 	<tr class="">
+			 		<td>{{index}}</td>
+			 		<td>{{population}}</td>
+			 		<td>
+			 			<a href="#" id="sel_{{index}}" class="btn btn-sm btn-success grpSel">select</a>
+			 			<a href="#" id="del_{{index}}" class="btn btn-default btn-sm lrSpacer grpDSel">deselect</a>
+			 			<a href="#" id="sav_{{index}}" class="btn btn-sm btn-danger grpSave">save</a>
+			 		</td>
+			 	</tr>
+			 {{/each}}
+		</table>
+			
+	
+		</div>
+	</div>
+
+
+
+</template>
+
+<template name="su_playerTable">
+
+	<div class="panel panel-default">
+		<div class="panel-body">
 
 			<h4>Players</h4>
 			<div class="scrollable">
@@ -159,11 +197,9 @@
 					
 				{{/each}}
 			</table>
-			</div>
+		</div>
 		</div>
 	</div>
-
-
 
 </template>
 
@@ -178,16 +214,21 @@
 					<input id="sendAll" type="checkbox">
 				</div>
 
-				<div>
+				<div class="tbSpacer">
 					<label for="startIndex">start index: </label>
 					<input type="number" id="startIndex" class="numbersInput" min="0" max="10" value="10">
 					<label for="endIndex">end index: </label>
 					<input type="number" id="endIndex" class="numbersInput" min="0" max="10" value="0">
+					<label for="endIndex">reset pause: </label>
+					<input id="resetPause" type = "number" class="numbersInput" min="0.0" max="5.0" value="0.0" step="0.1">
+				</div>
 
+				<div>
 					<a href="#" id="lockOn" class="btn btn-sm btn-default tbSpacer">lockOn</a>
 					<a href="#" id="lockOff" class="btn btn-sm btn-primary tbSpacer">lockOff</a>
 					<a href="#" id="replay" class="btn btn-sm btn-success tbSpacer">resetLock</a>
 				</div>
+			
 
 				<div>
 				
@@ -200,7 +241,7 @@
 						  <ul class="dropdown-menu" role="menu" aria-labelledby="voiceSelector">
 						    
 						  	{{#each voices}}
-						    <li><a role="menuitem" class="voiceItem {{../panel}}" href="#" id="{{this}}">{{this}}</a></li>
+						    <li><a role="menuitem" class="voiceItem" href="#" id="{{this}}">{{this}}</a></li>
 						    {{/each}}
 
 						  </ul>
@@ -254,7 +295,7 @@
 
 
 <template name= "su_onOff">
-	<!-- ....................... numbers ................... -->
+	<!-- ....................... on offs ................... -->
 	<div class="panel panel-default">
 		<div class="panel-body">
 
@@ -274,7 +315,7 @@
 			  <ul class="dropdown-menu" role="menu" aria-labelledby="voiceSelector">
 			    
 			  	{{#each voices}}
-			    <li><a role="menuitem" class="voiceItem {{../panel}}" href="#" id="{{this}}">{{this}}</a></li>
+			    <li><a role="menuitem" class="voiceItem" href="#" id="{{this}}">{{this}}</a></li>
 			    {{/each}}
 			  </ul>
 
@@ -303,7 +344,7 @@
 				  <ul class="dropdown-menu" role="menu" aria-labelledby="synthSelector">
 				    
 				  	{{#each synths}}
-				    <li><a role="menuitem" class="synthItem {{../panel}}" href="#" id="{{this}}">{{this}}</a></li>
+				    <li><a role="menuitem" class="synthItem" href="#" id="{{this}}">{{this}}</a></li>
 				    {{/each}}
 
 				  </ul>
@@ -351,6 +392,44 @@
 		<input id="oo_endPosR" class="numbersInput" type="number" min="0.5" max="0.8" value="0.8" step="0.05">
 		<label for="oo_variance">variance: </label>
 		<input id="oo_variance" class="numbersInput" type="number" min="0.0" max="0.5" value="0.0" step="0.05">
+	</div>
+
+</template>
+
+<template name= "su_offTransition">
+
+	<div class="panel panel-default">
+		<div class="panel-body">
+
+			<h2>Off transition</h2>
+
+			<a href="#" id="offTInit" class="btn btn-sm btn-warning tbSpacer">init</a>
+			<span class="dropdown lrSpacer">
+				<label>voice selector: </label>
+			  <button class="btn btn-default dropdown-toggle" type="button" id="voiceSelector" data-toggle="dropdown">
+			   	{{currentVoice}}
+			    <span class="caret"></span>
+			  </button>
+			  <ul class="dropdown-menu" role="menu" aria-labelledby="voiceSelector">
+			    
+			  	{{#each voices}}
+			    <li><a role="menuitem" class="voiceItem" href="#" id="{{this}}">{{this}}</a></li>
+			    {{/each}}
+			  </ul>
+
+
+			</span>
+
+			<div>
+				<label for="ot_volume">Vol: </label>
+				<input id="ot_volume" class="numbersInput" type="number" min="0.01" max="1.0" value="0.25" step="0.01">
+				<label for="ot_pan">Pan: </label>
+				<input id="ot_pan" class="numbersInput" type="number" min="-0.75" max="0.75" value="0.0" step="0.05">
+				<label for="ot_splay">Splay: </label>
+				<input id="ot_splay" class="numbersInput" type="number" min="0.0" max="0.25" value="0.0" step="0.05">
+			</div>
+
+		</div>
 	</div>
 
 </template>
