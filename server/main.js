@@ -116,9 +116,36 @@ msgStream.permissions.read(function(eventName, args) {
 
 Meteor.methods({
 
+	killSynths:function(){
+
+		var buf = osc.toBuffer({
+			address: "/allOff",
+			args: []
+	  	});
+
+	  	udp.send(buf, 0, buf.length, port, host);
+		
+
+	},
+
+
+	startPedal:function(userId){
+
+		if(checkAdmin(userId)){
+
+			var buf = osc.toBuffer({
+				address: "/startPedal",
+				args: []
+		  	});
+
+		  	udp.send(buf, 0, buf.length, port, host);
+		}
+
+	},
+
 	numPing:function(options) { 
 
-		console.log(options);
+		//console.log(options);
 
 		var buf = osc.toBuffer({
 			address: "/hit",
@@ -131,7 +158,7 @@ Meteor.methods({
 
 	onOffPing:function(options) { 
 
-		console.log(options);
+		//console.log(options);
 
 		if(options.msg == 'on'){
 

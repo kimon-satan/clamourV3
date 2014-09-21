@@ -44,6 +44,10 @@
 		{{>chat}}
 	{{/if}}
 
+	{{#if isScreen 'words'}}
+		{{>words}}
+	{{/if}}
+
   	{{#if isScreen 'numbers'}}
 		{{>numbers}}
 	{{/if}}
@@ -59,13 +63,19 @@
 </template>
 
 <template name="wait">
-	<h1>wait</h1>
+	<h1>Please wait. The performance will begin shortly ...</h1>
 </template>
 
 <template name="chat">
 	<div class= "largeText">{{chatText}}</div>
 </template>
 
+
+<template name="words">
+  <a href= "#" id="wordsBox">
+  	<div id="word" class="{{voice.words}}">{{currentWord}}</div>
+  </a>
+</template>
 
 <template name="numbers">
   

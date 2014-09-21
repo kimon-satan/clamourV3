@@ -4,11 +4,13 @@ var isAllPlayers;
 var isLockOn;
 var isRandVoice_Num = false;
 var isRandVoice_oo = false;
+var isRandVoice_wds = false;
 var pwtOptions = {};
 var gpnOptions = {};
 
 UI.registerHelper('isSu', function(){ return Meteor.user().profile.role == 'admin';});
 UI.registerHelper('isSuLogin', function(){ return Session.get('isAdmin')});
+
 
 
 
@@ -42,6 +44,8 @@ Template.su.created = function(){
 
   Session.set("currentMode", "none");
   Session.set("numbersVoice", voices[0]);
+  Session.set("wordsVoice" , voices[0]);
+  Session.set("currentWord", words[0]);
   Session.set("offTVoice", voices[0]);
   Session.set("onOffVoice", voices[0]);
   Session.set('currentSynth', synths[0]);
@@ -55,6 +59,25 @@ Template.su.created = function(){
   });
 
 }
+
+Template.su_synth_ctrl.events({
+
+  'click #killSynths':function(e){
+
+    Meteor.call("killSynths", Meteor.user()._id);
+    e.preventDefault();
+  }, 
+
+  'click #startPedal':function(e){
+
+    Meteor.call("startPedal", Meteor.user()._id);
+    e.preventDefault();
+
+  }
+
+
+
+});
 
 
 Template.su_players.events({
@@ -157,7 +180,7 @@ Template.su_players.events({
 });
 
 Template.su_players.playerModes = function(){
-  return ["numbers" , "chat", "onOff", "not_numbers", "not_chat" , "not_onOff", "none"];
+  return ["words", "numbers" , "chat", "onOff", "not_words","not_numbers", "not_chat" , "not_onOff", "none"];
 }
 
 Template.su_players.playerGroups = function(){
@@ -214,11 +237,13 @@ function selectSomePlayers(allPlayers){
   var searchObj = {};
 
   switch(Session.get("currentMode")){
+    case "words":
     case "numbers": 
     case "chat": 
     case "onOff": 
       searchObj.view = Session.get("currentMode");
     break;
+    case "not_words":
     case "not_numbers":
     case "not_chat": 
     case "not_onOff": 
@@ -242,7 +267,7 @@ function selectSomePlayers(allPlayers){
         searchObj.off = {$ne: true}
         break;
     }
-  }else if(Session.get("currentMode") == "numbers"){
+  }else if(Session.get("currentMode") == "numbers" || Session.get("currentMode") == "words" ){
     if(Session.get("currentFilter") != "none"){
 
       if(Session.get("currentFilter").substring(0,4) == "not_"){
@@ -316,6 +341,125 @@ Template.su_chat.events({
 
 });
 
+/*---------------------------------------------------------words-------------------------------------------*/
+
+
+
+Template.su_words.events({
+
+  'click #init':function(e){
+  
+      var options = {};
+      options = checkSendAllWords(options);
+      msgStream.emit('message', {type: 'screenChange', 'value' : 'words'});
+      msgStream.emit('message', {type: 'wordsReset', 'value': options});
+      e.preventDefault();
+
+  },
+
+  'click #killSynthsWds':function(e){
+
+      var options = {killSynths: $('#killSynthsWds').prop('checked')};
+      options = checkSendAllWords(options);
+      msgStream.emit('message', {type: 'wordsChange', 'value': options});
+  },
+
+  'click .voiceItem':function(e){
+
+    if(isRandVoice_wds){
+        isRandVoice_wds = false;
+        $('#randVoices_wds').addClass('btn-default');
+        $('#randVoices_wds').removeClass('btn-primary');
+      }
+    Session.set("wordsVoice", e.currentTarget.id);
+    var options = {voice: e.currentTarget.id, isRandomVoice: false};
+    options = checkSendAllWords(options);
+    msgStream.emit('message', {type: 'wordsChange', 'value': options});
+
+    e.preventDefault();
+  },
+
+  'click .wordItem':function(e){
+
+    Session.set("currentWord", e.currentTarget.id);
+    var options = {word: e.currentTarget.id};
+    options = checkSendAllWords(options);
+    msgStream.emit('message', {type: 'wordsChange', 'value': options});
+
+    e.preventDefault();
+  },
+
+  'click #randVoices_wds': function(e){
+
+    isRandVoice_wds = true;
+    $('#randVoices_wds').removeClass('btn-default');
+    $('#randVoices_wds').addClass('btn-primary');
+    var options = {isRandomVoice: isRandVoice_wds};
+    options = checkSendAllWords(options);
+    msgStream.emit('message', {type: 'wordsChange', 'value': options});
+
+    e.preventDefault();
+},
+
+'click #notRandVoices_wds': function(e){
+
+    isRandVoice_Num = false;
+    $('#randVoices_wds').addClass('btn-default');
+    $('#randVoices_wds').removeClass('btn-primary');
+    var options = {isRandomVoice: isRandVoice_wds};
+    options = checkSendAllWords(options);
+    msgStream.emit('message', {type: 'wordsChange', 'value': options});
+
+    e.preventDefault();
+},
+
+
+'click .wordsInput, blur .wordsInput':function(e){
+
+    var options = {};
+    options[e.currentTarget.id] = $('#' + e.currentTarget.id).val();
+    options = checkSendAllWords(options);
+    msgStream.emit('message', {type: 'wordsChange', 'value': options});
+
+}
+
+
+});
+
+
+
+Template.su_words.voice = function(){return Session.get("wordsVoice")}
+
+Template.su_words.words = function(){return words}
+Template.su_words.currentWord = function(){ return Session.get("currentWord")}
+
+
+function checkSendAllWords(options){
+
+  if($('#sendAllWds').prop('checked')){
+      options = getWordsOptions();
+  }
+
+  return options;
+  
+}
+
+function getWordsOptions(options){
+  var options = {
+    volume: $('#volume.wordsInput').val(),
+    pan:  $('#pan.wordsInput').val() ,
+    fadeTime: $('#fadeTime.wordsInput').val(),
+    isRandomVoice: isRandVoice_wds,
+    splay: $('#splay.wordsInput').val(),
+    voice: Session.get('wordsVoice'),
+    resetTime: $('#resetTime.wordsInput').val(),
+    word: Session.get("currentWord"),
+    killSynths: $('#killSynthsWds').prop('checked')
+  }
+  return options;
+}
+
+
 /*--------------------------------------------------------numbers-------------------------------------------*/
 
 
@@ -372,15 +516,6 @@ Template.su_numbers.events({
   e.preventDefault();
 },
 
-'click #splay':function(e){
-
-  var options = {splay: $('#splay').val()};
-  options = checkSendAll(options);
-  msgStream.emit('message', {type: 'numbersChange', 'value': options});
-  e.preventDefault();
-},
-
-
 'click #randVoices_num': function(e){
 
     isRandVoice_Num = true;
@@ -408,9 +543,9 @@ Template.su_numbers.events({
 'click .voiceItem':function(e){
 
   if(isRandVoice_Num){
-        isRandVoice_Num = false;
-        $('#randVoices_num').addClass('btn-default');
-        $('#randVoices_num').removeClass('btn-primary');
+      isRandVoice_Num = false;
+      $('#randVoices_num').addClass('btn-default');
+      $('#randVoices_num').removeClass('btn-primary');
     }
   Session.set("numbersVoice", e.currentTarget.id);
   var options = {voice: e.currentTarget.id, isRandomVoice: false};
@@ -433,6 +568,7 @@ Template.su_numbers.events({
 
 });
 
+
 function checkSendAll(options){
 
   if($('#sendAll').prop('checked')){
@@ -447,15 +583,15 @@ function getNumbersOptions(){
   var options = {
 
     lockOn: isLockOn, 
-    startIndex: $('#startIndex').val(),
-    endIndex: $('#endIndex').val(),
-    volume: $('#volume').val(),
-    pan:  $('#pan').val() ,
-    fadeTime: $('#fadeTime').val(),
+    startIndex: $('#startIndex.numbersInput').val(),
+    endIndex: $('#endIndex.numbersInput').val(),
+    volume: $('#volume.numbersInput').val(),
+    pan:  $('#pan.numbersInput').val() ,
+    fadeTime: $('#fadeTime.numbersInput').val(),
     isRandomVoice: isRandVoice_Num,
-    splay: $('#splay').val(),
+    splay: $('#splay.numbersInput').val(),
     voice: Session.get('numbersVoice'),
-    resetPause: $('#resetPause').val()
+    resetPause: $('#resetPause.numbersInput').val()
 
   };
 

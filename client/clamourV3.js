@@ -1,6 +1,11 @@
 
 
 msgStream = new Meteor.Stream('msgStream');
+
+words = ["go", "start", "stop", "end"];
+voices = ['peterUK' , 'grahamUK', 'rachelUK' , 'catherineUK', 'bridgetUK',  'rayUS', 'ryanUS', 'paulUS', 'heatherUS', 'kateUS'];
+synths = ['playWithTone', 'granPulseNoise'];
+
 var buttonPressed = false;
 var panOffset = Math.random() * 2 - 1;
 
@@ -20,6 +25,21 @@ var numbersOptions = {
 
 };
 
+var wordsOptions = {
+
+  amp: 0.5,
+  pan: 0,
+  splay: 0,
+  volume: 0.2,
+  fadeTime: 0.5,
+  resetTime: 0.0,
+  voice: voices[0],
+  word: words[0],
+  isRandomVoice: false,
+  killSynths: false
+
+};
+
 var onOptions = {
 
   voice: 'peterUK',
@@ -34,8 +54,7 @@ var offOptions = {
 
 var offTOptions;
 
-voices = ['peterUK' , 'grahamUK', 'rachelUK' , 'catherineUK', 'bridgetUK',  'rayUS', 'ryanUS', 'paulUS', 'heatherUS', 'kateUS'];
-synths = ['playWithTone', 'granPulseNoise'];
+
 
 
 
@@ -62,7 +81,8 @@ Template.clamour.created = function(){
 
     numbers: numbersOptions.voice,
     on: onOptions.voice,
-    off: offOptions.voice
+    off: offOptions.voice,
+    words: wordsOptions.voice
 
   };
 
@@ -83,6 +103,90 @@ Template.clamour.isScreen = function(mode){
 }
 
 UI.registerHelper('voice', function(){return Session.get("voice")});
+
+
+/*----------------------------------------------WORDS---------------------------------------------------*/
+
+Template.words.created = function(){
+    Session.set('isPause', false);
+    Session.set("currentWord", wordsOptions.word);
+}
+
+Template.words.currentWord = function(){
+  return Session.get("currentWord");
+}
+
+Template.words.events({
+
+  'touchstart #wordsBox, click #wordsBox' :function(e){
+
+    if(buttonPressed)return;
+    buttonPressed = true;
+
+    var fstring = 'fadeInOut ' + wordsOptions.fadeTime + 's forwards'
+   $('#wordsBox').css('-webkit-animation', fstring ); 
+   $('#wordsBox').css('animation', fstring); 
+
+    var soundOptions = {
+
+      num: Session.get('currentWord'),
+      voice: Session.get('voice').words,
+      pan: wordsOptions.pan + wordsOptions.splay * panOffset,
+      volume: wordsOptions.volume
+
+    };
+
+
+    if(wordsOptions.killSynths){
+
+      Meteor.call('killSynths');
+      
+    }
+
+    Meteor.call('numPing', soundOptions);
+
+
+
+    setTimeout(function(){
+
+      buttonPressed = false;
+
+      var v = Session.get('voice');
+      v.words = (wordsOptions.isRandomVoice) ? chooseRandomVoice() : wordsOptions.voice;
+      Session.set('voice', v);
+      wordsOptions.voice = v.words;
+      Session.set('currentWord', wordsOptions.word);
+      UserData.update(Meteor.user()._id, {$set: {voice: v.words}});
+
+      $('#wordsBox').css('opacity', 0.25);
+      $('#wordsBox').css('-webkit-animation', 'nil'); 
+      $('#wordsBox').css('animation', 'nil'); 
+
+
+
+    }, wordsOptions.fadeTime * 1000 + wordsOptions.resetTime * 1000 );
+
+
+    e.preventDefault();
+  }
+
+});
+
+
+function setWordsOptions(options){
+
+  if(typeof options.volume !== "undefined")wordsOptions.volume = parseFloat(options.volume);
+  if(typeof options.pan !== "undefined")wordsOptions.pan = parseFloat(options.pan);
+  if(typeof options.splay !== "undefined"){wordsOptions.splay = parseFloat(options.splay);}
+  if(typeof options.fadeTime !== "undefined")wordsOptions.fadeTime = parseFloat(options.fadeTime);
+  if(typeof options.isRandomVoice !== "undefined")wordsOptions.isRandomVoice = options.isRandomVoice;
+  if(typeof options.voice !== "undefined"){wordsOptions.voice = options.voice;}
+  if(typeof options.resetTime !== "undefined"){wordsOptions.resetTime = parseFloat(options.resetTime);}
+  if(typeof options.word !== "undefined"){wordsOptions.word = options.word}
+  if(typeof options.killSynths !== "undefined"){wordsOptions.killSynths = options.killSynths;}
+
+
+}
 
 
 /*-----------------------------------------------------NUMBERS ----------------------------------------*/
@@ -325,11 +429,17 @@ Template.offTransition.events({
     };
 
     Meteor.call('onOffPing', soundOptions);
+    Meteor.call('killSynths');
 
     msgStream.emit('userMessage', {type: 'offTransition', 'value': {}});
 
     window.setTimeout(function(){
       Session.set('screenMode', "onOff");
+      var oo = Session.get('onOffButtons');
+        oo.isOffButton = false;
+        oo.isOnButton = false;
+        oo.isOnActive = false;
+      Session.set('onOffButtons', oo);
       UserData.update(Meteor.user()._id, {$set: {view: Session.get('screenMode')}});
       UserData.update(Meteor.user()._id, {$set: {off: false, on: false}});
     },300);
@@ -379,9 +489,9 @@ msgStream.on('message', function(message){
     
     
     setNumbersOptions(message.value);
-    if(numbersOptions.resetPause > 0){
+     if(numbersOptions.resetPause > 0){
         Session.set('isPause', true);
-      setTimeout(function(){
+        setTimeout(function(){
         Session.set('isPause', false);
       },numbersOptions.resetPause * 1000)
     }
@@ -399,6 +509,22 @@ msgStream.on('message', function(message){
   if(message.type == 'numbersChange'){
 
     setNumbersOptions(message.value);
+
+  }
+
+  if(message.type == 'wordsChange'){
+
+    setWordsOptions(message.value);
+
+  }
+
+  if(message.type == 'wordsReset'){
+
+     setWordsOptions(message.value);
+     var v = Session.get('voice');
+     v.words = wordsOptions.voice;
+     Session.set('voice', v);
+     Session.set('currentWord', wordsOptions.word);
 
   }
 
