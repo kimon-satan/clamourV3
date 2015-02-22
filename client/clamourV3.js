@@ -578,7 +578,7 @@ msgStream.on('message', function(message){
 
   }
 
-  if(message.type == 'updateChat'){ 
+  if(message.type == 'chatUpdate'){ 
     var t = Session.get("chatText");
     if(typeof(t) == "undefined")t =[""];
     t[t.length-1] = message.value;
@@ -590,6 +590,10 @@ msgStream.on('message', function(message){
     if(typeof(t) == "undefined")t =[];
     t.push("");
     Session.set('chatText', t);
+  }
+
+  if(message.type == 'chatClear'){
+    Session.set("chatText", [""]);
   }
 
   if(message.type == 'offTransition'){
