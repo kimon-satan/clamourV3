@@ -579,19 +579,17 @@ msgStream.on('message', function(message){
   }
 
   if(message.type == 'updateChat'){ 
-    var str = Session.get('chatText');
-    if(typeof str == "undefined")str = "";
+    var t = Session.get("chatText");
+    if(typeof(t) == "undefined")t =[""];
+    t[t.length-1] = message.value;
+    Session.set('chatText', t);
+  }
 
-    if(message.value.length == 1){
-      Session.set('chatText', str + message.value);
-    }else if(message.value == "cr"){
-      str += String.fromCharCode(13);
-      Session.set("chatText", str);
-    }else if(message.value == "de"){
-      str = str.substring(0, str.length - 1);
-      Session.set("chatText", str);
-    }
-
+  if(message.type == 'chatNewLine'){
+    var t = Session.get("chatText");
+    if(typeof(t) == "undefined")t =[];
+    t.push("");
+    Session.set('chatText', t);
   }
 
   if(message.type == 'offTransition'){

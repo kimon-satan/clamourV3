@@ -353,26 +353,13 @@ Template.su_cmd.events({
       var cmds = str.split(cli_mode + ">");
       var cmd = cmds[cmds.length - 1];
 
-      if(cli_mode == "chat"){ //potentially refacctor at somepoint
-        if(cmd.substring(0,1) != "_")
-        {
-          if(e.keyCode == 13){
-            //send a carriage return
-            msgStream.emit('message', {type: 'updateChat', 'value':  "cr"});
-          }
-          else if(e.keyCode == 8)
-          {
-            msgStream.emit('message', {type: 'updateChat', 'value':  "de"});
-          }
-          else
-          {
-            msgStream.emit('message', {type: 'updateChat', 'value':  cmd.slice(-1)});
-          }
-        }
-        else if(e.keyCode == 13)
-        {
-          cmd.replace(/\r?\n|\r/,"");
-          evaluateCommand(cmd, newCursor);
+      if(cli_mode == "chat" && cmd.substring(0,1) != "_"){ //potentially refacctor at somepoint
+        
+        if(e.keyCode == 13){
+          newCursor();
+          msgStream.emit('message', {type: 'chatNewLine', 'value':  ""});
+        }else{
+          msgStream.emit('message', {type: 'updateChat', 'value':  cmd});
         }
       }
       else if(e.keyCode == 13)

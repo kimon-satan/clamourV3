@@ -68,7 +68,9 @@
 </template>
 
 <template name="chat">
-	<div class= "largeText">{{chatText}}</div>
+	{{#each chatText}}
+		<div class= "largeText">{{this}}</div>
+	{{/each}}
 </template>
 
 
