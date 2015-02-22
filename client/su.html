@@ -20,6 +20,8 @@
 
 	<div class="col-md-6 scrollable">
 
+		{{>su_cmd}}
+
 		{{>su_chat}}
 
 		{{>su_words}}
@@ -398,6 +400,27 @@
 		</div>
 </template>
 
+
+
+<template name = "su_cmd">
+			<!-- ....................... chat ................... -->
+
+		<div class="panel panel-default">
+			<div class="panel-body">
+				<h2>CLI</h2>
+
+				<div class="row">
+					<form role="form">
+						<textarea id="cmdText" rows="20" cols="50">
+
+						</textarea>
+
+					</form>
+				</div>
+
+			</div>
+		</div>
+</template>
 
 
 <template name= "su_onOff">

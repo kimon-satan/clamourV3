@@ -182,7 +182,6 @@ input[type='checkbox']:checked {
 }
 
 
-
 #onBox{
     background: #00FF00;
 }
@@ -227,4 +226,8 @@ input[type='checkbox']:checked {
     font-size: 125px;
     font-style: normal;
 
+}
+
+#cmdText{
+    background: #000;
 }

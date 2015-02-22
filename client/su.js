@@ -312,6 +312,75 @@ function shuffleArray(o){ //v1.0
 };
 
 
+/*-----------------------------------------------CLI ----------------------------------------*/
+
+
+Template.su_cmd.created = function(){
+
+  Meteor.defer(function(){
+     $('#cmdText').val("clmr>");
+
+  })
+ 
+}
+
+
+Template.su_cmd.events({
+
+
+  'keydown #cmdText':function(e){
+        
+      var str = $('#cmdText').val();    
+      var cmds = str.split("clmr>");
+      var cmd = cmds[cmds.length - 1];
+      cmd.replace(/\r?\n|\r/,"");
+
+      if(e.keyCode == 13)
+      {
+        evaluateCommand(cmd, newCursor);
+        e.preventDefault();
+      }
+      else if(e.keyCode == 8)
+      {
+        return (cmd.length > 0);
+      }
+
+  }
+
+
+
+});
+
+newCursor = function(){
+  var str = $('#cmdText').val();
+  $('#cmdText').val(str + "\n" + "clmr>");
+}
+
+
+evaluateCommand = function(cmd, callback){
+
+  var result_str = "execute";
+  var str = $('#cmdText').val();
+  $('#cmdText').val(str + "\n" + result_str);
+  callback();
+}
+
+emptyf = function(){
+
+}
+
+var CLMR_CMDS = {
+
+  "_startchat": emptyf,
+  "_endchat": emptyf,
+
+}
+
+var CHAT_CMDS = {
+
+
+}
+
 /*--------------------------------------------------------chat-------------------------------------------*/
 
 Template.su_chat.events({
