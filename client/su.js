@@ -1,4 +1,8 @@
 
+var CLMR_CMDS = {}
+var CHAT_CMDS = {}
+var cli_mode = "clmr";
+
 var numPlayers;
 var isAllPlayers;
 var isLockOn;
@@ -328,21 +332,55 @@ Template.su_cmd.created = function(){
 Template.su_cmd.events({
 
 
-  'keydown #cmdText':function(e){
+  'keydown #cmdText':function(e)
+  {
+    
+    var str = $('#cmdText').val();    
+    var cmds = str.split(cli_mode + ">");
+    var cmd = cmds[cmds.length - 1];
+
+    if(e.keyCode == 8)
+    {
+        return (cmd.length > 0);
+    }else if(e.keyCode == 13){
+        e.preventDefault();
+    }
+  },
+
+  'keyup #cmdText':function(e){
         
       var str = $('#cmdText').val();    
-      var cmds = str.split("clmr>");
+      var cmds = str.split(cli_mode + ">");
       var cmd = cmds[cmds.length - 1];
-      cmd.replace(/\r?\n|\r/,"");
 
-      if(e.keyCode == 13)
-      {
-        evaluateCommand(cmd, newCursor);
-        e.preventDefault();
+      if(cli_mode == "chat"){ //potentially refacctor at somepoint
+        if(cmd.substring(0,1) != "_")
+        {
+          if(e.keyCode == 13){
+            //send a carriage return
+            msgStream.emit('message', {type: 'updateChat', 'value':  "cr"});
+          }
+          else if(e.keyCode == 8)
+          {
+            msgStream.emit('message', {type: 'updateChat', 'value':  "de"});
+          }
+          else
+          {
+            msgStream.emit('message', {type: 'updateChat', 'value':  cmd.slice(-1)});
+          }
+        }
+        else if(e.keyCode == 13)
+        {
+          cmd.replace(/\r?\n|\r/,"");
+          evaluateCommand(cmd, newCursor);
+        }
       }
-      else if(e.keyCode == 8)
+      else if(e.keyCode == 13)
       {
-        return (cmd.length > 0);
+     
+        cmd.replace(/\r?\n|\r/,"");
+        evaluateCommand(cmd, newCursor);
+     
       }
 
   }
@@ -352,36 +390,53 @@ Template.su_cmd.events({
 });
 
 newCursor = function(){
-  var str = $('#cmdText').val();
-  $('#cmdText').val(str + "\n" + "clmr>");
+  println(cli_mode + ">");
+}
+
+println = function(str){
+  $('#cmdText').val($('#cmdText').val() + "\n"+ str);   
 }
 
 
 evaluateCommand = function(cmd, callback){
 
-  var result_str = "execute";
-  var str = $('#cmdText').val();
-  $('#cmdText').val(str + "\n" + result_str);
-  callback();
-}
+  var result_str;
+  var cmds;
 
-emptyf = function(){
+  switch(cli_mode){
+    case "clmr": cmds = CLMR_CMDS;break;
+    case "chat": cmds = CHAT_CMDS;break;
+  }
 
-}
-
-var CLMR_CMDS = {
-
-  "_startchat": emptyf,
-  "_endchat": emptyf,
-
-}
-
-var CHAT_CMDS = {
-
+  if(typeof(cmds[cmd]) != 'undefined'){
+    cmds[cmd](callback);
+  }else{
+    println("command not found")
+    callback();
+  }
 
 }
+
+CLMR_CMDS["_chat"] = function(callback){
+
+    cli_mode = "chat";
+    msgStream.emit('message', {type: 'screenChange', 'value' : 'chat'});
+    msgStream.emit('message', {type: 'updateChat', 'value':  ""});
+    callback();
+
+}
+
+CHAT_CMDS["_q"] = function(callback){
+    cli_mode = "clmr";
+    callback();
+}
+
+
 
 /*--------------------------------------------------------chat-------------------------------------------*/
+
+
+
 
 Template.su_chat.events({
 
