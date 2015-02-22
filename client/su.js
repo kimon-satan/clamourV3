@@ -325,8 +325,10 @@ Template.su_chat.events({
 
 
   'keyup #chatText':function(e){
-    
-      msgStream.emit('message', {type: 'updateChat', 'value':  $('#chatText').val()});
+        
+      var s = $('#chatText').val();    
+      console.log(s);
+      msgStream.emit('message', {type: 'updateChat', 'value':  s});
     
   },
 

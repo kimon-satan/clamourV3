@@ -578,7 +578,11 @@ msgStream.on('message', function(message){
 
   }
 
-  if(message.type == 'updateChat'){ Session.set('chatText', message.value);}
+  if(message.type == 'updateChat'){ 
+
+    Session.set('chatText', message.value);
+
+  }
 
   if(message.type == 'offTransition'){
       Session.set("screenMode", "offTransition");
@@ -590,6 +594,7 @@ msgStream.on('message', function(message){
   
 
 });
+
 
 
 
