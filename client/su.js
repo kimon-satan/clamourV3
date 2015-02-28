@@ -4,6 +4,7 @@ var CHAT_CMDS = {}
 var cli_mode = "clmr";
 
 var numPlayers;
+var cliThread;
 var isAllPlayers;
 var isLockOn;
 var isRandVoice_Num = false;
@@ -221,183 +222,12 @@ Template.su_players.voiceFilters = function(){
 
 }
 
-function deselectAllPlayers(){
 
 
-    Meteor.users.find({'profile.role': "player"}).forEach(function(e){
-      UserData.update(e._id,{$set: {isSelected: false}});
-    });
-
-}
-
-function selectSomePlayers(allPlayers){
-
-  var uids = [];
-  var invert = $('#invert').prop('checked');
-
-   UserData.find().forEach(function(e){UserData.update(e._id, {$set: {isSelected: invert}})});
-
-  var searchObj = {};
-
-  switch(Session.get("currentMode")){
-    case "words":
-    case "numbers": 
-    case "chat": 
-    case "onOff": 
-      searchObj.view = Session.get("currentMode");
-    break;
-    case "not_words":
-    case "not_numbers":
-    case "not_chat": 
-    case "not_onOff": 
-      searchObj.view = {$ne: Session.get("currentMode").substring(4)}
-    break;
-
-  }
-
-  if(Session.get("currentMode") == "onOff"){
-    switch(Session.get("currentFilter")){
-        case "hasOn": 
-        searchObj.on = true;
-        break;
-        case "hasOff": 
-        searchObj.off = true;
-        break;
-        case "noOn": 
-        searchObj.on = {$ne: true}
-        break;
-        case "noOff": 
-        searchObj.off = {$ne: true}
-        break;
-    }
-  }else if(Session.get("currentMode") == "numbers" || Session.get("currentMode") == "words" ){
-    if(Session.get("currentFilter") != "none"){
-
-      if(Session.get("currentFilter").substring(0,4) == "not_"){
-        searchObj.voice =  {$ne: Session.get("currentFilter").substring(4)}
-      }else{
-        searchObj.voice = Session.get("currentFilter");
-      }
-
-    }
-  }
-      
 
 
-    
 
 
-  UserData.find(searchObj).forEach(function(e){
-    uids.push(e._id);
-  });
-
-  if(!allPlayers){
-    shuffleArray(uids);
-
-    var numPlayers = Math.min(uids.length , $('#numPlayers').val());
-
-    for(var i = 0; i < numPlayers; i++){
-      UserData.update(uids[i], {$set: {isSelected: !invert}});
-    }
-  }else{
-
-    for(var i = 0; i < uids.length; i++){
-      UserData.update(uids[i], {$set: {isSelected: !invert}});
-    }
-
-  }
-
-}
-
-function selectPlayers(args){
-
-  var uids = [];
-
-  //default values
-  if(typeof(args.invert) == "undefined")args.invert = false;
-  if(typeof(args.mode) == "undefined")args.mode = "none";
-  if(typeof(args.filter) == "undefined")args.filter = "none";
-  if(typeof(args.numPlayers) == "undefined")args.numPlayers = 1;
-  if(typeof(args.allPlayers) == "undefined")args.allPlayers = true;
-
-   UserData.find().forEach(function(e){UserData.update(e._id, {$set: {isSelected: args.invert}})});
-
-  var searchObj = {};
-
-  switch(args.mode){
-    case "words":
-    case "numbers": 
-    case "chat": 
-    case "onOff": 
-      searchObj.view = args.mode;
-    break;
-    case "not_words":
-    case "not_numbers":
-    case "not_chat": 
-    case "not_onOff": 
-      searchObj.view = {$ne: args.mode.substring(4)}
-    break;
-
-  }
-
-  if(args.mode == "onOff"){
-    switch(args.filter){
-        case "hasOn": 
-        searchObj.on = true;
-        break;
-        case "hasOff": 
-        searchObj.off = true;
-        break;
-        case "noOn": 
-        searchObj.on = {$ne: true}
-        break;
-        case "noOff": 
-        searchObj.off = {$ne: true}
-        break;
-    }
-  }else if(args.mode == "numbers" || args.mode == "words" ){
-    if(args.filter != "none"){
-
-      if(args.filter.substring(0,4) == "not_"){
-        searchObj.voice =  {$ne: args.filter.substring(4)}
-      }else{
-        searchObj.voice = args.filter;
-      }
-
-    }
-  }
-      
-
-
-    
-
-
-  UserData.find(searchObj).forEach(function(e){
-    uids.push(e._id);
-  });
-
-  if(!args.allPlayers){
-    shuffleArray(uids);
-
-    var numPlayers = Math.min(uids.length , args.numPlayers);
-
-    for(var i = 0; i < numPlayers; i++){
-      UserData.update(uids[i], {$set: {isSelected: !args.invert}});
-    }
-  }else{
-
-    for(var i = 0; i < uids.length; i++){
-      UserData.update(uids[i], {$set: {isSelected: !args.invert}});
-    }
-
-  }
-
-}
-
-function shuffleArray(o){ //v1.0
-    for(var j, x, i = o.length; i; j = Math.floor(Math.random() * i), x = o[--i], o[i] = o[j], o[j] = x);
-    return o;
-};
 
 
 /*-----------------------------------------------CLI ----------------------------------------*/
@@ -441,9 +271,9 @@ Template.su_cmd.events({
         
         if(e.keyCode == 13){
           newCursor();
-          msgStream.emit('message', {type: 'chatNewLine', 'value':  ""});
+          msgStream.emit('message', { type: 'chatNewLine', value:  "", thread: cliThread});
         }else{
-          msgStream.emit('message', {type: 'chatUpdate', 'value':  cmd});
+          msgStream.emit('message', { type: 'chatUpdate', value:  cmd, thread: cliThread});
         }
       }
       else if(e.keyCode == 13)
@@ -495,20 +325,30 @@ evaluateCommand = function(cmd, callback){
 CLMR_CMDS["_chat"] = function(args, callback){
 
     cli_mode = "chat";
-    if(args[0] == "-a")selectPlayers({ap: true}); // this will need a better syntax
-    msgStream.emit('message', {type: 'screenChange', 'value' : 'chat'});
-    msgStream.emit('message', {type: 'chatClear', 'value':  ""});
+    cliThread = generateTempId(10);
+
+    if(args[0] == "-a")Meteor.call("addThreadToPlayers", Meteor.user()._id, {thread: cliThread},
+      
+      function(e, r){
+          //only make the call once the thread has been added
+          msgStream.emit('message', {type: 'screenChange', 'value' : 'chat', thread: cliThread});
+          msgStream.emit('message', {type: 'chatClear', 'value':  "", thread: cliThread});
+
+      }
+    ); 
+
     callback();
 
 }
 
 CHAT_CMDS["_q"] = function(args, callback){
     cli_mode = "clmr";
+    Meteor.call("killThread", Meteor.user()._id, cliThread);
     callback();
 }
 
 CHAT_CMDS["_c"] = function(args, callback){
-    msgStream.emit('message', {type: 'chatClear', 'value':  ""});
+    msgStream.emit('message', {type: 'chatClear', 'value':  "", thread: cliThread});
     callback();
 }
 
