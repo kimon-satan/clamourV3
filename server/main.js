@@ -15,13 +15,6 @@ Meteor.startup(function(){
 		Accounts.createUser({username: 'clamourAdmin', password: 'ontap'});
 	}
 
-	if(UserGroups.find().fetch().length == 0){
-
-		for(var i = 0; i < 6; i++){
-			UserGroups.insert({index: "grp_" + i , users: [], isSelected: false});
-		}
-
-	}
 
 
 });
@@ -33,7 +26,7 @@ Accounts.onCreateUser(function(options, user){
 	}else{
 		user.profile = {role: 'player'};
 		//console.log(user);
-		UserData.insert({ _id: user._id, view: 'wait', isSelected: false, on: false, off: false, voice: "none", activeThreads: []});
+		UserData.insert({ _id: user._id, view: 'wait', isSelected: false, on: false, off: false, voice: "none", activeThreads: [], groups: []});
 	}
 
 	return user;
@@ -95,7 +88,7 @@ msgStream.permissions.read(function(eventName, args) {
 	 if(ud){
 		if(eventName == "message"){
 			
-			 if(typeof(ud.activeThreads.indexOf(args.thread))!= "undefined" ){
+			 if(ud.activeThreads.indexOf(args.thread) > -1 ){
 			 	//console.log(this.userId, eventName , args);
 			 	return true;
 			 }else{
@@ -120,8 +113,8 @@ Meteor.methods({
 	killThread: function(userId, thread){
 
 		if(checkAdmin(userId)){
-	    	UserData.update({activeThreads: {$in: [thread]}}, {$pull: {activeThreads: thread}});
-	    	return true;
+			UserData.update({activeThreads: {$in: [thread]}}, {$pull: {activeThreads: thread}},{multi: true});
+			return true;
 		}else{
 			return false;
 		}
@@ -135,7 +128,9 @@ Meteor.methods({
 
 		if(checkAdmin(userId)){
 			
+
 			var uids = selectPlayers(args);
+			var msg = "chat with " + uids.length + " players with activeThread: " + args.thread;
 			
 			if(typeof(args.group) == "undefined"){
 				
@@ -151,11 +146,12 @@ Meteor.methods({
 				}
 
 				UserGroups.insert({name: args.group, members: uids});
+				msg += "\n these players will now be called " + args.group;
+
 			}
 
-			return true;
-		}else{
-			return false;
+			return msg;
+
 		}
 
 	},
@@ -168,17 +164,57 @@ Meteor.methods({
 
 		if(checkAdmin(userId)){
 
-			var uids = selectPlayers(args)
+			var uids = selectPlayers(args);
 
 			for(var i = 0; i < uids.length; i++){
-				UserData.update(uids[i], {$addToset: {groups: args.group}});
+				UserData.update(uids[i], {$push: {groups: args.group}});
 			}
 
 			UserGroups.insert({name: args.group, members: uids});
+			return  uids.length + " players will now be called " + args.group;
 
+		}
+	},
 
-		}else{
-			return false;
+	createSubGroups: function(userId, args){
+
+		if(checkAdmin(userId)){
+			var uids = UserGroups.findOne({name: args.orig}).members;
+			var gpsize = uids.length/parseInt(args.numGps);
+			if(gpsize < 2){
+				throw new Meteor.Error("invalid argument", "there aren't enough members in the parent group");
+			}else{
+				var msg = "";
+				shuffleArray(uids);
+				for(var i = 0; i < args.numGps; i++){
+					var gpname = args.orig + "_" + i;
+					var nids = [];
+					for(var j = 0; j < gpsize; j++){
+						UserData.update(uids[0], {$push: {groups: gpname}});
+						nids.push(uids.splice(0,1));
+						if(uids.length == 0)break;
+					}
+					UserGroups.insert({name: gpname, members: nids});
+					msg += gpname + " with " + nids.length + " members \n";
+				}
+				return msg;
+			}
+		}
+	},
+
+	removeGroups: function(userId, args){
+		if(checkAdmin(userId)){
+			if(typeof(args) == "undefined"){
+				//delete all groups
+				UserData.update({},{$set: {groups: []}},{multi: true});
+				UserGroups.remove({});
+				return "clearing all groups ..."
+			}else{
+
+				UserData.update({groups: {$in: [args]}},{$pull: {groups: args}}, {multi: true});
+				UserGroups.remove({name: args});
+
+			}
 		}
 	},
 
@@ -278,12 +314,21 @@ Meteor.methods({
 
 			UserData.remove({});
 
-			UserGroups.update({},{$set: {users:[]}},{multi: true});
+			UserGroups.remove({});
 
 			
 		}
 
 
+	},
+
+	fakePlayers:function(userId, numPlayers){
+
+		if(checkAdmin(userId)){
+			for(var i = 0; i < numPlayers; i++){
+				UserData.insert({ view: 'wait', isSelected: false, on: false, off: false, voice: "none", activeThreads: [], groups: []});
+			}
+		}
 	}
 
 
@@ -302,7 +347,7 @@ function selectPlayers(args){
 
 	for(var i = 0; i < args.filters.length; i++){
 
-	var filter = arg.filters[i];
+	var filter = args.filters[i];
 
 	switch(filter.mode){
 		case "words":
@@ -312,16 +357,35 @@ function selectPlayers(args){
 			searchObj.view = filter.not ? {$ne: filter.mode} : filter.mode;
 		break;
 		case "hasOn": 
-			searchObj.on = filter.not ? {$ne: true} : true;
+			searchObj.on = !filter.not;
 		break;
 		case "hasOff": 
-			searchObj.off = filter.not ?  {$ne: true} : true;
+			searchObj.off = !filter.not; 
 		break;
 		case "voice":
 			searchObj.voice = filter.not ?  {$ne: filter.voice} : filter.voice; 
 		break;
 		case "group":
-			searchObj.group = filter.not ?  {$nin: [filter.group]} : {$in: [filter.group]}
+			if(typeof(searchObj.groups) == "undefined"){
+				searchObj.groups = filter.not ?  {$nin: [filter.group]} : {$in: [filter.group]}
+			}else{
+
+				if(filter.not){
+					if(typeof(searchObj.groups['$nin']) == "undefined"){
+						searchObj.groups['$nin'] = [filter.group];
+					}else{
+						searchObj.groups['$nin'].push(filter.group);
+					}
+
+				}else{
+
+					if(typeof(searchObj.groups.$in) == "undefined"){
+						searchObj.groups['$in'] = [filter.group];
+					}else{
+						searchObj.groups['$in'].push(filter.group);
+					}
+				}
+			}
 		break;
 		}
 
@@ -336,7 +400,7 @@ function selectPlayers(args){
 	if(typeof(args.numPlayers) != "undefined"){
 		shuffleArray(uids);
 		var numPlayers = Math.min(uids.length , args.numPlayers);
-		uids.slice(0,numPlayers);
+		uids = uids.slice(0,numPlayers);
 	}
 
 
@@ -350,6 +414,7 @@ function checkAdmin(userId){
 	if(user.profile.role == "admin"){
 		return true;
 	}else{
+		//throw new Meteor.Error("insufficient admin rights");
 		return false;
 	}
 	

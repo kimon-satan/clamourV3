@@ -67,102 +67,13 @@
 	<div class="panel panel-default">
 		<div class="panel-body">
 			<h2>Players</h2>
-			<div class ="text-left">
-			<form role="form" class="form-inline">
+
 				
 				<div>
 				<a href="#" id="resetPlayers" class="btn btn-sm btn-danger tbSpacer">logout all</a>
 				</div>
 
-				<label for="numPlayers">Number of players</label>
-				<input id="numPlayers" type = "number" min="1" max="200" value="1">
-
-				<label for="allPlayers">all players</label>
-				<input id="allPlayers" type="checkbox">
-
-				<a href="#" id="reselect" class="btn btn-sm btn-success lrSpacer">reselect</a>
-				<a href="#" id="deselect" class="btn btn-sm btn-warning lrSpacer">deselect</a>
-
-				<br/><br/>
-
-
 				
-				<span class="dropdown lrSpacer">
-				<label>mode filter: </label>
-				  <button class="btn btn-default dropdown-toggle" type="button" id="modeFilter" data-toggle="dropdown">
-				    {{currentMode}}
-				    <span class="caret"></span>
-				  </button>
-				  <ul class="dropdown-menu" role="menu" aria-labelledby="modeFilter">
-				    
-				  	{{#each playerModes}}
-				    <li><a role="menuitem" class="filterItem" href="#" id="{{this}}">{{this}}</a></li>
-				    {{/each}}
-
-				  </ul>
-				</span>
-
-
-				{{#if checkCurrentMode 'onOff'}}
-					<span class="dropdown lrSpacer">
-					<label>onOff filter: </label>
-					  <button class="btn btn-default dropdown-toggle" type="button" id="modeFilter" data-toggle="dropdown">
-					    {{currentFilter}}
-					    <span class="caret"></span>
-					  </button>
-					  <ul class="dropdown-menu" role="menu" aria-labelledby="onOffFilter">
-					    
-					  	{{#each onOffFilters}}
-					    <li><a role="menuitem" class="ooFilterItem" href="#" id="{{this}}">{{this}}</a></li>
-					    {{/each}}
-
-					  </ul>
-					</span>
-
-
-				{{/if}}
-
-				{{#if checkCurrentMode 'numbers'}}
-					<span class="dropdown lrSpacer">
-					<label>voice filter: </label>
-					  <button class="btn btn-default dropdown-toggle" type="button" id="modeFilter" data-toggle="dropdown">
-					    {{currentFilter}}
-					    <span class="caret"></span>
-					  </button>
-					  <ul class="dropdown-menu" role="menu" aria-labelledby="nFilter">
-					    
-					  	{{#each voiceFilters}}
-					    <li><a role="menuitem" class="nFilterItem" href="#" id="{{this}}">{{this}}</a></li>
-					    {{/each}}
-
-					  </ul>
-					</span>
-
-				{{/if}}
-
-
-				{{#if checkCurrentMode 'words'}}
-					<span class="dropdown lrSpacer">
-					<label>voice filter: </label>
-					  <button class="btn btn-default dropdown-toggle" type="button" id="modeFilter" data-toggle="dropdown">
-					    {{currentFilter}}
-					    <span class="caret"></span>
-					  </button>
-					  <ul class="dropdown-menu" role="menu" aria-labelledby="nFilter">
-					    
-					  	{{#each voiceFilters}}
-					    <li><a role="menuitem" class="nFilterItem" href="#" id="{{this}}">{{this}}</a></li>
-					    {{/each}}
-
-					  </ul>
-					</span>
-
-				{{/if}}
-
-				<label for="invert">Invert selection: </label>
-				<input type="checkbox" id="invert">
-
-			</form>
 		</div>
 
 		<h4>player groups</h4>
@@ -170,24 +81,20 @@
 			<thead>
 			    <th>group</th>
 			    <th>population</th>
-			    <th>actions</th>
+
 			 </thead>
 			 {{#each playerGroups}}
 			 	<tr class="">
-			 		<td>{{index}}</td>
+			 		<td>{{this.name}}</td>
 			 		<td>{{population}}</td>
-			 		<td>
-			 			<a href="#" id="sel_{{index}}" class="btn btn-sm btn-success grpSel">select</a>
-			 			<a href="#" id="del_{{index}}" class="btn btn-default btn-sm lrSpacer grpDSel">deselect</a>
-			 			<a href="#" id="sav_{{index}}" class="btn btn-sm btn-danger grpSave">save</a>
-			 		</td>
+
 			 	</tr>
 			 {{/each}}
 		</table>
 			
 	
-		</div>
 	</div>
+
 
 
 
@@ -220,6 +127,7 @@
 			
 						<td>{{this._id}}</td>
 						<td>{{this.view}}</td>
+						<td>{{this.activeThreads}}</td>
 
 						{{#if checkCurrentMode 'onOff'}}
 							<td>{{this.on}}</td>

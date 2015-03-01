@@ -56,12 +56,6 @@ Template.su.created = function(){
   Session.set('currentSynth', synths[0]);
   Session.set('currentFilter', 'none');
 
-  Meteor.defer(function(){
-
-    selectSomePlayers();
-
-  });
-
 }
 
 Template.su_synth_ctrl.events({
@@ -96,110 +90,26 @@ Template.su_players.events({
     };
 
     e.preventDefault();
-  },
-
-  'click #deselect':function(e){
-    deselectAllPlayers();
-    e.preventDefault();
-  },
-
-
-  'change #allPlayers, click #reselect, click #numPlayers':function(e){
-
-      if(e.currentTarget.id == 'numPlayers'){$('#allPlayers').prop('checked', false)}
-      selectSomePlayers($('#allPlayers').prop('checked'));
-
-
-  },
-
-  'click .filterItem':function(e){
-
-    Session.set("currentMode", e.currentTarget.id);
-    Session.set("currentFilter", "none");
-    selectSomePlayers($('#allPlayers').prop('checked'));
-    e.preventDefault();
-  },
-
-  'click .ooFilterItem':function(e){
-
-    Session.set("currentFilter", e.currentTarget.id);
-     selectSomePlayers($('#allPlayers').prop('checked'));
-    e.preventDefault();
-  },
-
-  'click .nFilterItem':function(e){
-
-    Session.set("currentFilter", e.currentTarget.id);
-     selectSomePlayers($('#allPlayers').prop('checked'));
-    e.preventDefault();
-  },
-
-  'click #invert':function(e){
-     selectSomePlayers($('#allPlayers').prop('checked'));
-   },
-
-  'click .grpSel':function(e){
-
-    var idx = e.currentTarget.id.substring(4);
-    var ug = UserGroups.findOne({index: idx});
-
-    for(var i = 0; i < ug.users.length; i++){
-      UserData.update(ug.users[i], {$set:{isSelected: true}});
-    }
-
-
-    e.preventDefault();
-  },
-
-  'click .grpDSel':function(e){
-    
-    var idx = e.currentTarget.id.substring(4);
-    var ug = UserGroups.findOne({index: idx});
-
-    for(var i = 0; i < ug.users.length; i++){
-      UserData.update(ug.users[i], {$set:{isSelected: false}});
-    }
-
-    e.preventDefault();
-  },
-
-  'click .grpSave':function(e){
-    
-    var idx = e.currentTarget.id.substring(4);
-    var ug = UserGroups.findOne({index: idx});
-    var sel = UserData.find({isSelected: true},{fields: {isSelected: 1}}).fetch();
-
-
-    ug.users = [];
-    for(var i = 0; i < sel.length; i++){
-      ug.users.push(sel[i]._id);
-    }
-
-    UserGroups.update(ug._id, {$set: {users: ug.users}});
-    e.preventDefault();
   }
 
 
 
 });
 
-Template.su_players.playerModes = function(){
-  return ["words", "numbers" , "chat", "onOff", "not_words","not_numbers", "not_chat" , "not_onOff", "none"];
-}
+
 
 Template.su_players.playerGroups = function(){
   return UserGroups.find({},{sort:{index: 1}}).fetch();
 }
 
 Template.su_players.population = function(){
-  return this.users.length;
+  return this.members.length;
 }
 
-Template.su_players.getGroupSelected = function(){
-  return this.isSelected;
-}
 
-Template.su_playerTable.getSelected = function(p){if(p.isSelected)return "selected"}
+
+
+Template.su_playerTable.getSelected = function(p){if(p.activeThreads.indexOf(cliThread) > -1)return "selected"}
 UI.registerHelper('checkCurrentMode', function(m){return (Session.get("currentMode") == m)});
 
 Template.su_playerTable.selectedPlayers = function(){
@@ -221,12 +131,6 @@ Template.su_players.voiceFilters = function(){
   return filters;
 
 }
-
-
-
-
-
-
 
 
 
@@ -258,7 +162,11 @@ Template.su_cmd.events({
         return (cmd.length > 0);
     }else if(e.keyCode == 13){
         e.preventDefault();
+    }else if(e.keyCode == 75 && e.metaKey){
+      $('#cmdText').val(cli_mode + ">");
     }
+
+    console.log(e)
   },
 
   'keyup #cmdText':function(e){
@@ -294,6 +202,17 @@ newCursor = function(){
   println(cli_mode + ">");
 }
 
+cmdReturn = function(error, result){
+
+  if(error){
+    println(error.reason);
+  }else if(result){
+    println(result)
+  }
+
+  newCursor();
+}
+
 println = function(str){
   $('#cmdText').val($('#cmdText').val() + "\n"+ str);   
 }
@@ -325,19 +244,73 @@ evaluateCommand = function(cmd, callback){
 CLMR_CMDS["_chat"] = function(args, callback){
 
     cli_mode = "chat";
-    cliThread = generateTempId(10);
+    cliThread = generateTempId(10); //TODO: this will go soon ?
 
-    if(args[0] == "-a")Meteor.call("addThreadToPlayers", Meteor.user()._id, {thread: cliThread},
-      
-      function(e, r){
-          //only make the call once the thread has been added
-          msgStream.emit('message', {type: 'screenChange', 'value' : 'chat', thread: cliThread});
-          msgStream.emit('message', {type: 'chatClear', 'value':  "", thread: cliThread});
+    var selector = parseFilters(args);
+    if(selector){
+      selector.thread = cliThread;
 
+      Meteor.call("addThreadToPlayers", Meteor.user()._id, selector,
+        function(e, r){
+            //only make the call once the thread has been added
+            if(!e){
+
+              msgStream.emit('message', {type: 'screenChange', 'value' : 'chat', thread: cliThread});
+              msgStream.emit('message', {type: 'chatClear', 'value':  "", thread: cliThread});
+              println(r);
+
+            }else{
+              println(e.reason);
+            }
+            newCursor();
+        }
+      );
+    }else{
+
+      msgStream.emit('message', {type: 'screenChange', 'value' : 'chat', thread: cliThread});
+      msgStream.emit('message', {type: 'chatClear', 'value':  "", thread: cliThread});
+      callback();
+    }
+
+    
+
+}
+
+CLMR_CMDS["_group"] = function(args, callback){
+    
+    var name;
+    if(args[0].substring(0,1) != "-"){
+      name = args[0];
+      args.splice(0,1);
+    }
+
+    if(args[0] == "-d"){
+
+      var s_args = {};
+      s_args.orig = args[1];
+      s_args.numGps = parseInt(args[2]);
+      Meteor.call("createSubGroups", Meteor.user()._id, s_args, cmdReturn);
+
+    }else if(args[0] == "-r"){
+      if(typeof(args[1]) == "undefined"){
+        Meteor.call("removeGroups", Meteor.user()._id, cmdReturn);
+      }else{
+        Meteor.call("removeGroups", Meteor.user()._id, args[1], cmdReturn);
       }
-    ); 
+    }else{
 
-    callback();
+      var selector = parseFilters(args);
+      if(typeof(name) != "undefined"){
+        selector.group = name;
+      }
+
+      if(selector && selector.group){
+        Meteor.call("createGroup", Meteor.user()._id, selector, cmdReturn);
+      }else{
+        callback();
+      }
+    }
+
 
 }
 
@@ -354,7 +327,80 @@ CHAT_CMDS["_c"] = function(args, callback){
 
 
 
+function parseFilters(args){
 
+  var selector = {};
+
+  for(var i = 0; i < args.length; ){
+    if(args[i] == "-f" || args[i] == "-n"){
+      
+      if(typeof(selector.filters) == "undefined")selector.filters = [];
+
+      (function(){
+        var filter = {};
+        filter.not = args[i] == "-n";
+        args.splice(i,1);
+
+        switch(args[i]){
+
+          case "words": //FIXME: this could be done more concisely
+            filter.mode = "words";
+          break;
+          case "numbers":
+            filter.mode = "numbers";
+          break;
+          case "onOff":
+            filter.mode = "onOff";
+          break;
+          case "chat":
+            filter.mode = "chat";
+          break;
+          case "hasOn":
+            filter.mode = "hasOn";
+          break;
+          case "hasOff":
+            filter.mode = "hasOff";
+          break;
+
+          default:
+            if(!isNaN(args[i])){
+              selector.numPlayers = parseInt(args[i]);
+            }else if(voices.indexOf(args[i]) > -1){
+              filter.mode = "voice";
+              filter.voice = args[i];
+            }else if(UserGroups.findOne({name: args[i]})){
+              filter.mode = "group";
+              filter.group = args[i];
+            }
+
+        }
+
+        args.splice(i, 1);
+        selector.filters.push(filter);
+
+      })();
+
+    }else if(args[i] == "-g"){
+      
+      args.splice(i,1);
+      selector.group = args[i];
+
+    }else if(UserGroups.findOne({name: args[i]})){
+
+      if(typeof(selector.filters) == "undefined")selector.filters = [];
+      var filter = {mode: "group", group: args[i]};
+      selector.filters.push(filter);
+      args.splice(i, 1);
+
+    }else{
+      i++;
+    }
+  }
+
+  if(typeof(selector.filters) == "undefined")selector = false; //there are no selectors
+
+  return selector;
+}
 
 
 /*---------------------------------------------------------words-------------------------------------------*/
