@@ -1,6 +1,8 @@
 
 var CLMR_CMDS = {}
 var CHAT_CMDS = {}
+var WORDS_CMDS = {}
+
 var cli_mode = "clmr";
 
 var numPlayers;
@@ -12,6 +14,8 @@ var isRandVoice_oo = false;
 var isRandVoice_wds = false;
 var pwtOptions = {};
 var gpnOptions = {};
+
+var wordsPresets = {}; 
 
 UI.registerHelper('isSu', function(){ return Meteor.user().profile.role == 'admin';});
 UI.registerHelper('isSuLogin', function(){ return Session.get('isAdmin')});
@@ -55,6 +59,23 @@ Template.su.created = function(){
   Session.set("onOffVoice", voices[0]);
   Session.set('currentSynth', synths[0]);
   Session.set('currentFilter', 'none');
+
+  wordsPresets.df = {
+    vol: 0.2,
+    pan:  0.0 ,
+    fade: 0.5,
+    rand: false,
+    splay: 0.25,
+    voice: voices[0],
+    reset: 0.0,
+    word: words[0],
+    kills: true
+  }
+
+  wordsPresets.cr = {};
+  for( var i in wordsPresets.df){
+    wordsPresets.cr[i] = wordsPresets.df[i];
+  }
 
 }
 
@@ -106,31 +127,15 @@ Template.su_players.population = function(){
   return this.members.length;
 }
 
-
-
-
 Template.su_playerTable.getSelected = function(p){if(p.activeThreads.indexOf(cliThread) > -1)return "selected"}
 UI.registerHelper('checkCurrentMode', function(m){return (Session.get("currentMode") == m)});
 
 Template.su_playerTable.selectedPlayers = function(){
-  return UserData.find({},{sort: {isSelected: -1}}).fetch();
+  return UserData.find({}).fetch();
 }
 
-Template.su_players.currentMode = function(){return Session.get("currentMode")}
-Template.su_players.currentFilter = function(){return Session.get("currentFilter")}
 
-Template.su_players.onOffFilters = function(){return ["none", "noOn","hasOn", "noOff", "hasOff"]}
-Template.su_players.voiceFilters = function(){
 
-  var filters = ["none"];
-  for(v in voices){
-    filters.push(voices[v]);
-    filters.push("not_" + voices[v]);
-  }
-
-  return filters;
-
-}
 
 
 
@@ -226,6 +231,7 @@ evaluateCommand = function(cmd, callback){
   switch(cli_mode){
     case "clmr": cmds = CLMR_CMDS;break;
     case "chat": cmds = CHAT_CMDS;break;
+    case "words": cmds = WORDS_CMDS;break;
   }
 
   args = cmd.split(" ");
@@ -247,6 +253,7 @@ CLMR_CMDS["_chat"] = function(args, callback){
     cliThread = generateTempId(10); //TODO: this will go soon ?
 
     var selector = parseFilters(args);
+    selector.mode = cli_mode;
     if(selector){
       selector.thread = cliThread;
 
@@ -273,6 +280,44 @@ CLMR_CMDS["_chat"] = function(args, callback){
     }
 
     
+
+}
+
+CLMR_CMDS["_words"] = function(args, callback){
+
+    cli_mode = "words";
+    cliThread = generateTempId(10);  //this will need to change in a minute to keep last thread
+
+    var selector = parseFilters(args);
+    selector.mode = cli_mode;
+    if(selector){
+      selector.thread = cliThread;
+
+      Meteor.call("addThreadToPlayers", Meteor.user()._id, selector,
+        function(e, r){
+            //only make the call once the thread has been added
+            if(!e){
+
+              var options = {};
+              options = wordsPresets.df;
+              msgStream.emit('message', {type: 'screenChange', 'value' : 'words', thread: cliThread});
+              msgStream.emit('message', {type: 'wordsReset', 'value': options, thread: cliThread});
+              println(r);
+
+            }else{
+              println(e.reason);
+            }
+            newCursor();
+        }
+      );
+    }else{
+
+      var options = {};
+      options = wordsPresets.df;
+      msgStream.emit('message', {type: 'screenChange', 'value' : 'words', thread: cliThread});
+      msgStream.emit('message', {type: 'wordsReset', 'value': options, thread: cliThread});
+      callback();
+    }
 
 }
 
@@ -314,7 +359,7 @@ CLMR_CMDS["_group"] = function(args, callback){
 
 }
 
-CHAT_CMDS["_q"] = function(args, callback){
+CHAT_CMDS["_q"] = function(args, callback){ //need to think about what these commands can usefully do
     cli_mode = "clmr";
     Meteor.call("killThread", Meteor.user()._id, cliThread);
     callback();
@@ -325,6 +370,73 @@ CHAT_CMDS["_c"] = function(args, callback){
     callback();
 }
 
+
+WORDS_CMDS["_q"] = function(args, callback){
+    cli_mode = "clmr";
+    Meteor.call("killThread", Meteor.user()._id, cliThread); 
+    callback();
+}
+
+WORDS_CMDS["_i"] = function(args, callback){
+    //instant change
+    var options = parseWordsOptions(args);
+    msgStream.emit('message', {type: 'wordsChange', 'value': options, thread: cliThread});
+    callback();
+}
+
+WORDS_CMDS["_r"] = function(args, callback){
+    //ramp change
+    //change all players simultaneously over time
+    callback();
+}
+
+WORDS_CMDS["_d"] = function(args, callback){
+    //ramp change
+    //change all players after a delay
+    callback();
+}
+
+
+function parseWordsOptions(args){
+
+  var options = {};
+
+  if(args.length == 0){ //default to previous options
+    for(var i in wordsPresets.cr){
+      options[i] = wordsPresets.cr[i];
+    }
+    return options;
+  }
+
+  while(args.length > 0){
+    var i = args.indexOf("-p");
+    
+    if(i > -1){
+        args.splice(i,1);      
+        for(var x in wordsPresets[args[i]]){
+          options[x] = wordsPresets[args[i]][x];
+        }
+        console.log(options);
+        args.splice(i,1);
+    }
+
+    var params = Object.keys(wordsPresets.df);
+
+    for(var x = 0; x < params.length; x++){
+        i = args.indexOf("-" + params[x]);
+        if(i > -1){
+          args.splice(i,1); 
+          options[params[x]] = args[i];
+          args.splice(i,1); 
+        }
+    }
+
+
+  }
+  
+
+  return options;
+}
 
 
 function parseFilters(args){
@@ -409,15 +521,6 @@ function parseFilters(args){
 
 Template.su_words.events({
 
-  'click #init':function(e){
-  
-      var options = {};
-      options = checkSendAllWords(options);
-      msgStream.emit('message', {type: 'screenChange', 'value' : 'words'});
-      msgStream.emit('message', {type: 'wordsReset', 'value': options});
-      e.preventDefault();
-
-  },
 
   'click #killSynthsWds':function(e){
 

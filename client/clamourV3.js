@@ -30,13 +30,13 @@ var wordsOptions = {
   amp: 0.5,
   pan: 0,
   splay: 0,
-  volume: 0.2,
-  fadeTime: 0.5,
-  resetTime: 0.0,
+  vol: 0.2,
+  fade: 0.5,
+  reset: 0.0,
   voice: voices[0],
   word: words[0],
-  isRandomVoice: false,
-  killSynths: false
+  rand: false,
+  kills: false
 
 };
 
@@ -123,7 +123,7 @@ Template.words.events({
     if(buttonPressed)return;
     buttonPressed = true;
 
-    var fstring = 'fadeInOut ' + wordsOptions.fadeTime + 's forwards'
+    var fstring = 'fadeInOut ' + wordsOptions.fade + 's forwards'
    $('#wordsBox').css('-webkit-animation', fstring ); 
    $('#wordsBox').css('animation', fstring); 
 
@@ -132,14 +132,14 @@ Template.words.events({
       num: Session.get('currentWord'),
       voice: Session.get('voice').words,
       pan: wordsOptions.pan + wordsOptions.splay * panOffset,
-      volume: wordsOptions.volume
+      vol: wordsOptions.vol
 
     };
 
 
-    if(wordsOptions.killSynths){
+    if(wordsOptions.kills){
 
-      Meteor.call('killSynths');
+      Meteor.call('killSynths'); //combine to make sure this works
       
     }
 
@@ -152,7 +152,7 @@ Template.words.events({
       buttonPressed = false;
 
       var v = Session.get('voice');
-      v.words = (wordsOptions.isRandomVoice) ? chooseRandomVoice() : wordsOptions.voice;
+      v.words = (wordsOptions.rand) ? chooseRandomVoice() : wordsOptions.voice;
       Session.set('voice', v);
       wordsOptions.voice = v.words;
       Session.set('currentWord', wordsOptions.word);
@@ -164,7 +164,7 @@ Template.words.events({
 
 
 
-    }, wordsOptions.fadeTime * 1000 + wordsOptions.resetTime * 1000 );
+    }, wordsOptions.fade * 1000 + wordsOptions.reset * 1000 );
 
 
     e.preventDefault();
@@ -175,15 +175,15 @@ Template.words.events({
 
 function setWordsOptions(options){
 
-  if(typeof options.volume !== "undefined")wordsOptions.volume = parseFloat(options.volume);
+  if(typeof options.vol !== "undefined")wordsOptions.vol = parseFloat(options.vol);
   if(typeof options.pan !== "undefined")wordsOptions.pan = parseFloat(options.pan);
   if(typeof options.splay !== "undefined"){wordsOptions.splay = parseFloat(options.splay);}
-  if(typeof options.fadeTime !== "undefined")wordsOptions.fadeTime = parseFloat(options.fadeTime);
-  if(typeof options.isRandomVoice !== "undefined")wordsOptions.isRandomVoice = options.isRandomVoice;
+  if(typeof options.fade !== "undefined")wordsOptions.fade = parseFloat(options.fade);
+  if(typeof options.rand !== "undefined")wordsOptions.rand = options.rand;
   if(typeof options.voice !== "undefined"){wordsOptions.voice = options.voice;}
-  if(typeof options.resetTime !== "undefined"){wordsOptions.resetTime = parseFloat(options.resetTime);}
+  if(typeof options.reset !== "undefined"){wordsOptions.reset = parseFloat(options.reset);}
   if(typeof options.word !== "undefined"){wordsOptions.word = options.word}
-  if(typeof options.killSynths !== "undefined"){wordsOptions.killSynths = options.killSynths;}
+  if(typeof options.kills !== "undefined"){wordsOptions.kills = options.kills;}
 
 
 }

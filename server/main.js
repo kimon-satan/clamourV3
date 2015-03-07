@@ -130,7 +130,7 @@ Meteor.methods({
 			
 
 			var uids = selectPlayers(args);
-			var msg = "chat with " + uids.length + " players with activeThread: " + args.thread;
+			var msg =  args.mode + " with " + uids.length + " players with activeThread: " + args.thread; //this message needs to change
 			
 			if(typeof(args.group) == "undefined"){
 				
@@ -250,7 +250,7 @@ Meteor.methods({
 
 		var buf = osc.toBuffer({
 			address: "/hit",
-			args: [options.num, options.voice, options.volume, options.pan]
+			args: [options.num, options.voice, options.vol, options.pan]
 	  	});
 
 	  	udp.send(buf, 0, buf.length, port, host);
