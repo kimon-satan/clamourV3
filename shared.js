@@ -70,3 +70,9 @@ function adminOwnerTest(user, doc){
 		return (doc._id == user);
 	}
 }
+
+//helpers
+
+isNumber = function(n) {
+  return !isNaN(parseFloat(n)) && isFinite(n);
+}

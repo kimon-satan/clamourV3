@@ -23,8 +23,6 @@
 		{{>su_cmd}}
 
 
-		{{>su_words}}
-
 		{{>su_numbers}}
 
 		{{>su_onOff}}
@@ -148,75 +146,6 @@
 
 </template>
 
-<template name="su_words">
-	<div class="panel panel-default">
-		<div class="panel-body">
-
-			<h2>words</h2>
-			<div>
-				<a href="#" id="init" class="btn btn-sm btn-warning tbSpacer lrSpacer">init</a>
-				<label for="sendAllWds">send all settings</label>
-				<input id="sendAllWds" type="checkbox">
-				<label for="sendAllWds">killSynths</label>
-				<input id="killSynthsWds"  type="checkbox">
-			</div>
-			<div>
-						
-				<span class="dropdown lrSpacer">
-					<label>voice selector: </label>
-				  <button class="btn btn-default dropdown-toggle" type="button" id="voiceSelector" data-toggle="dropdown">
-				   	{{voice}}
-				    <span class="caret"></span>
-				  </button>
-				  <ul class="dropdown-menu" role="menu" aria-labelledby="voiceSelector">
-				    
-				  	{{#each voices}}
-				    <li><a role="menuitem" class="voiceItem" href="#" id="{{this}}">{{this}}</a></li>
-				    {{/each}}
-
-				  </ul>
-				</span>
-				<a href="#" id="randVoices_wds" class="btn btn-sm btn-default tbSpacer">randomVoices</a>
-				<a href="#" id="notRandVoices_wds" class="btn btn-sm btn-default tbSpacer">randOff</a>
-
-			</div>
-			<div>
-				<span class="dropdown lrSpacer">
-					<label>word selector: </label>
-				  <button class="btn btn-default dropdown-toggle" type="button" id="wordSelector" data-toggle="dropdown">
-				   	{{currentWord}}
-				    <span class="caret"></span>
-				  </button>
-				  <ul class="dropdown-menu" role="menu" aria-labelledby="wordSelector">
-				    
-				  	{{#each words}}
-				    <li><a role="menuitem" class="wordItem" href="#" id="{{this}}">{{this}}</a></li>
-				    {{/each}}
-
-				  </ul>
-				</span>
-
-				<label for="resetTime">resetTime: </label>
-				<input id="resetTime" class="wordsInput" type="number" min="0.0" max="5.0" value="0.0" step="0.25">
-
-			</div>
-			<br/>
-
-			<div>
-				<label for="volume">Volume: </label>
-				<input id="volume" class="wordsInput" type="number" min="0.01" max="1.0" value="0.2" step="0.01">
-				<label for="pan">Pan: </label>
-				<input id="pan" class="wordsInput" type="number" min="-0.75" max="0.75" value="0.0" step="0.05">
-				<label for="splay">Splay: </label>
-				<input id="splay" class="wordsInput" type="number" min="0.0" max="0.25" value="0.0" step="0.05">
-				<label for="fadeTime">fadeTime: </label>
-				<input id="fadeTime" class="wordsInput" type="number" min="0.1" max="1.0" value="0.5" step="0.05">
-			</div>
-
-		</div>
-	</div>
-
-</template>
 
 <template name= "su_numbers">
 			<!-- ....................... numbers ................... -->

@@ -173,18 +173,26 @@ Template.words.events({
 });
 
 
-function setWordsOptions(options){
 
-  if(typeof options.vol !== "undefined")wordsOptions.vol = parseFloat(options.vol);
-  if(typeof options.pan !== "undefined")wordsOptions.pan = parseFloat(options.pan);
-  if(typeof options.splay !== "undefined"){wordsOptions.splay = parseFloat(options.splay);}
-  if(typeof options.fade !== "undefined")wordsOptions.fade = parseFloat(options.fade);
-  if(typeof options.rand !== "undefined")wordsOptions.rand = options.rand;
-  if(typeof options.voice !== "undefined"){wordsOptions.voice = options.voice;}
-  if(typeof options.reset !== "undefined"){wordsOptions.reset = parseFloat(options.reset);}
-  if(typeof options.word !== "undefined"){wordsOptions.word = options.word}
-  if(typeof options.kills !== "undefined"){wordsOptions.kills = options.kills;}
+function parseOptions(options_i, options_o){
 
+
+  for(var i in options_o){
+
+    if(typeof(options_i[i]) == "string" || typeof(options_i[i]) == "number"){
+        options_o[i] = isNumber(options_i[i])? parseFloat(options_i[i]) : options_i[i];
+    }else if(typeof(options_i[i]) == "object"){
+        if(options_i[i] instanceof Array){
+          var idx = parseInt(Math.floor(Math.random() * options_i[i].length));
+          options_o[i] = isNumber(options_i[i][idx])? parseFloat(options_i[i][idx]) : options_i[i][idx];
+        }else{
+          var r = parseFloat(options_i[i].max) - parseFloat(options_i[i].min);
+          options_o[i] = Math.random() * r + options_i[i].min;
+
+        }
+    }
+
+  }
 
 }
 
@@ -508,19 +516,19 @@ msgStream.on('message', function(message){
 
   if(message.type == 'numbersChange'){
 
-    setNumbersOptions(message.value);
+    parseOptions(message.value, numbersOptions);
 
   }
 
   if(message.type == 'wordsChange'){
 
-    setWordsOptions(message.value);
+    parseOptions(message.value, wordsOptions);
 
   }
 
   if(message.type == 'wordsReset'){
 
-     setWordsOptions(message.value);
+     parseOptions(message.value, wordsOptions);
      var v = Session.get('voice');
      v.words = wordsOptions.voice;
      Session.set('voice', v);

@@ -171,7 +171,6 @@ Template.su_cmd.events({
       $('#cmdText').val(cli_mode + ">");
     }
 
-    console.log(e)
   },
 
   'keyup #cmdText':function(e){
@@ -234,7 +233,17 @@ evaluateCommand = function(cmd, callback){
     case "words": cmds = WORDS_CMDS;break;
   }
 
+  //get rid of any unnecessary spaces
+  cmd = cmd.replace(/,\s|\s,/g, ",");
+  
+  cmd = cmd.replace(/\[\s/g, "[");
+  cmd = cmd.replace(/\s\]/g, "]");
+  cmd = cmd.replace(/\(\s/g, "(");
+  cmd = cmd.replace(/\s\)/g, ")");
+
+
   args = cmd.split(" ");
+  console.log(args);
   cmd = args[0];
   args = args.slice(1);
 
@@ -359,6 +368,9 @@ CLMR_CMDS["_group"] = function(args, callback){
 
 }
 
+
+/*-----------------------------------------------CHAT-------------------------------------------*/
+
 CHAT_CMDS["_q"] = function(args, callback){ //need to think about what these commands can usefully do
     cli_mode = "clmr";
     Meteor.call("killThread", Meteor.user()._id, cliThread);
@@ -369,6 +381,8 @@ CHAT_CMDS["_c"] = function(args, callback){
     msgStream.emit('message', {type: 'chatClear', 'value':  "", thread: cliThread});
     callback();
 }
+
+/*-----------------------------------WORDS-----------------------------------------*/
 
 
 WORDS_CMDS["_q"] = function(args, callback){
@@ -397,6 +411,7 @@ WORDS_CMDS["_d"] = function(args, callback){
 }
 
 
+
 function parseWordsOptions(args){
 
   var options = {};
@@ -408,35 +423,46 @@ function parseWordsOptions(args){
     return options;
   }
 
-  while(args.length > 0){
-    var i = args.indexOf("-p");
-    
-    if(i > -1){
-        args.splice(i,1);      
-        for(var x in wordsPresets[args[i]]){
-          options[x] = wordsPresets[args[i]][x];
-        }
-        console.log(options);
-        args.splice(i,1);
-    }
-
-    var params = Object.keys(wordsPresets.df);
-
-    for(var x = 0; x < params.length; x++){
-        i = args.indexOf("-" + params[x]);
-        if(i > -1){
-          args.splice(i,1); 
-          options[params[x]] = args[i];
-          args.splice(i,1); 
-        }
-    }
-
-
-  }
+  var i = args.indexOf("-p");
   
+  if(i > -1){
+      args.splice(i,1);      
+      for(var x in wordsPresets[args[i]]){
+        options[x] = wordsPresets[args[i]][x];
+      }
+      args.splice(i,1);
+  }
+
+  var params = Object.keys(wordsPresets.df);
+
+  for(var x = 0; x < params.length; x++){
+      i = args.indexOf("-" + params[x]);
+      if(i > -1){
+        args.splice(i,1); 
+        if(args[i].substring(0,1) == "["){
+          //repackage as an array
+          args[i] = args[i].substring(1, args[i].length -1);
+          options[params[x]] = args[i].split(",");
+          console.log(options[params[x]]);
+
+        }else if(args[i].substring(0,1) == "("){
+          //repackage as an object
+          args[i] = args[i].substring(1, args[i].length -1);
+          var ar = args[i].split(",");
+          options[params[x]] = {min: parseFloat(ar[0]), max: parseFloat(ar[1])};
+
+
+        }else{
+          options[params[x]] = isNumber(args[i]) ? parseFloat(args[i]) : args[i];
+        }
+        
+        args.splice(i,1); 
+      }
+  }
 
   return options;
 }
+
 
 
 function parseFilters(args){
@@ -515,114 +541,7 @@ function parseFilters(args){
 }
 
 
-/*---------------------------------------------------------words-------------------------------------------*/
 
-
-
-Template.su_words.events({
-
-
-  'click #killSynthsWds':function(e){
-
-      var options = {killSynths: $('#killSynthsWds').prop('checked')};
-      options = checkSendAllWords(options);
-      msgStream.emit('message', {type: 'wordsChange', 'value': options});
-  },
-
-  'click .voiceItem':function(e){
-
-    if(isRandVoice_wds){
-        isRandVoice_wds = false;
-        $('#randVoices_wds').addClass('btn-default');
-        $('#randVoices_wds').removeClass('btn-primary');
-      }
-    Session.set("wordsVoice", e.currentTarget.id);
-    var options = {voice: e.currentTarget.id, isRandomVoice: false};
-    options = checkSendAllWords(options);
-    msgStream.emit('message', {type: 'wordsChange', 'value': options});
-
-    e.preventDefault();
-  },
-
-  'click .wordItem':function(e){
-
-    Session.set("currentWord", e.currentTarget.id);
-    var options = {word: e.currentTarget.id};
-    options = checkSendAllWords(options);
-    msgStream.emit('message', {type: 'wordsChange', 'value': options});
-
-    e.preventDefault();
-  },
-
-  'click #randVoices_wds': function(e){
-
-    isRandVoice_wds = true;
-    $('#randVoices_wds').removeClass('btn-default');
-    $('#randVoices_wds').addClass('btn-primary');
-    var options = {isRandomVoice: isRandVoice_wds};
-    options = checkSendAllWords(options);
-    msgStream.emit('message', {type: 'wordsChange', 'value': options});
-
-    e.preventDefault();
-},
-
-'click #notRandVoices_wds': function(e){
-
-    isRandVoice_Num = false;
-    $('#randVoices_wds').addClass('btn-default');
-    $('#randVoices_wds').removeClass('btn-primary');
-    var options = {isRandomVoice: isRandVoice_wds};
-    options = checkSendAllWords(options);
-    msgStream.emit('message', {type: 'wordsChange', 'value': options});
-
-    e.preventDefault();
-},
-
-
-'click .wordsInput, blur .wordsInput':function(e){
-
-    var options = {};
-    options[e.currentTarget.id] = $('#' + e.currentTarget.id).val();
-    options = checkSendAllWords(options);
-    msgStream.emit('message', {type: 'wordsChange', 'value': options});
-
-}
-
-
-});
-
-
-
-Template.su_words.voice = function(){return Session.get("wordsVoice")}
-
-Template.su_words.words = function(){return words}
-Template.su_words.currentWord = function(){ return Session.get("currentWord")}
-
-
-function checkSendAllWords(options){
-
-  if($('#sendAllWds').prop('checked')){
-      options = getWordsOptions();
-  }
-
-  return options;
-  
-}
-
-function getWordsOptions(options){
-  var options = {
-    volume: $('#volume.wordsInput').val(),
-    pan:  $('#pan.wordsInput').val() ,
-    fadeTime: $('#fadeTime.wordsInput').val(),
-    isRandomVoice: isRandVoice_wds,
-    splay: $('#splay.wordsInput').val(),
-    voice: Session.get('wordsVoice'),
-    resetTime: $('#resetTime.wordsInput').val(),
-    word: Session.get("currentWord"),
-    killSynths: $('#killSynthsWds').prop('checked')
-  }
-  return options;
-}
 
 
 /*--------------------------------------------------------numbers-------------------------------------------*/
