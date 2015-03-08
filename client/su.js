@@ -5,6 +5,7 @@ var WORDS_CMDS = {}
 var NUMBERS_CMDS = {}
 
 var cli_mode = "clmr";
+var currentOptions = {};
 
 var numPlayers;
 var cliThread;
@@ -52,7 +53,12 @@ Template.su.created = function(){
   Meteor.subscribe("UserData", Meteor.user()._id);
   Meteor.subscribe("AllPlayers", Meteor.user()._id);
   Meteor.subscribe("UserGroups", Meteor.user()._id);
-  Meteor.subscribe("Presets");
+  Meteor.subscribe("Presets",function(){
+
+    currentOptions["numbers"] = Presets.findOne({type: "numbers", name: "df"}).options;
+    currentOptions["words"] = Presets.findOne({type: "words", name: "df"}).options;
+
+  });
 
   Session.set("currentMode", "none");
 
@@ -286,6 +292,8 @@ CLMR_CMDS["_words"] = function(args, callback){
     cliThread = generateTempId(10);  //this will need to change in a minute to keep last thread
 
     var selector = parseFilters(args);
+    var options = parseOptions(args, "words");
+
     selector.mode = cli_mode;
     if(selector){
       selector.thread = cliThread;
@@ -295,9 +303,8 @@ CLMR_CMDS["_words"] = function(args, callback){
             //only make the call once the thread has been added
             if(!e){
 
-              var p = Presets.findOne({type: "words", name: "df"}).options;
               msgStream.emit('message', {type: 'screenChange', 'value' : 'words', thread: cliThread});
-              msgStream.emit('message', {type: 'wordsReset', 'value': p, thread: cliThread});
+              msgStream.emit('message', {type: 'wordsReset', 'value': options, thread: cliThread});
               println(r);
 
             }else{
@@ -308,7 +315,6 @@ CLMR_CMDS["_words"] = function(args, callback){
       );
     }else{
 
-      var p = Presets.findOne({type: "words", name: "df"}).options;
       msgStream.emit('message', {type: 'screenChange', 'value' : 'words', thread: cliThread});
       msgStream.emit('message', {type: 'wordsReset', 'value': options, thread: cliThread});
       callback();
@@ -322,6 +328,7 @@ CLMR_CMDS["_numbers"] = function(args, callback){
   cliThread = generateTempId(10);  //this will need to change in a minute to keep last thread
 
   var selector = parseFilters(args);
+  var options = parseOptions(args, "numbers");
   selector.mode = cli_mode;
   if(selector){
     selector.thread = cliThread;
@@ -331,9 +338,8 @@ CLMR_CMDS["_numbers"] = function(args, callback){
   //only make the call once the thread has been added
         if(!e){
 
-          var p = Presets.findOne({type: "numbers", name: "df"}).options;
           msgStream.emit('message', {type: 'screenChange', 'value' : 'numbers', thread: cliThread});
-          msgStream.emit('message', {type: 'numbersReset', 'value': p, thread: cliThread});
+          msgStream.emit('message', {type: 'numbersReset', 'value': options, thread: cliThread});
           println(r);
 
         }else{
@@ -347,7 +353,7 @@ CLMR_CMDS["_numbers"] = function(args, callback){
     var p = Presets.findOne({type: "numbers", name: "df"}).options;
 
     msgStream.emit('message', {type: 'screenChange', 'value' : 'numbers', thread: cliThread});
-    msgStream.emit('message', {type: 'numbersReset', 'value': p, thread: cliThread});
+    msgStream.emit('message', {type: 'numbersReset', 'value': options, thread: cliThread});
     callback();
   }
 
@@ -392,6 +398,32 @@ CLMR_CMDS["_group"] = function(args, callback){
 
 }
 
+CLMR_CMDS["_remove"] = function(args, callback){
+
+  var i = args.indexOf("-p");
+  var p;
+  var t;
+
+  if(i > -1){
+    args.splice(i,1);
+    p = args[i];
+    args.splice(i,1);
+  }
+
+  i = args.indexOf("-t");
+  if(i > -1){
+     args.splice(i,1);
+     t = args[i];
+     args.splice(i,1);
+  }
+
+  if(typeof(p) != "undefined" && typeof(t) != "undefined"){
+    Meteor.call("removePreset", Meteor.user()._id, {type: t, name: p},cmdReturn);
+  }
+
+
+}
+
 
 /*-----------------------------------------------CHAT-------------------------------------------*/
 
@@ -417,9 +449,9 @@ WORDS_CMDS["_q"] = function(args, callback){
 
 WORDS_CMDS["_i"] = function(args, callback){
     //instant change
-    var options = parseWordsOptions(args);
+    var options = parseOptions(args , "words", callback);
     msgStream.emit('message', {type: 'wordsChange', 'value': options, thread: cliThread});
-    callback();
+    
 }
 
 WORDS_CMDS["_r"] = function(args, callback){
@@ -434,56 +466,7 @@ WORDS_CMDS["_d"] = function(args, callback){
     callback();
 }
 
-function parseWordsOptions(args){
 
-  var options = {};
-
-  if(args.length == 0){ //default to previous options
-    for(var i in wordsPresets.cr){
-      options[i] = wordsPresets.cr[i];
-    }
-    return options;
-  }
-
-  var i = args.indexOf("-p");
-  
-  if(i > -1){
-      args.splice(i,1);      
-      for(var x in wordsPresets[args[i]]){
-        options[x] = wordsPresets[args[i]][x];
-      }
-      args.splice(i,1);
-  }
-
-  var params = Object.keys(wordsPresets.df);
-
-  for(var x = 0; x < params.length; x++){
-      i = args.indexOf("-" + params[x]);
-      if(i > -1){
-        args.splice(i,1); 
-        if(args[i].substring(0,1) == "["){
-          //repackage as an array
-          args[i] = args[i].substring(1, args[i].length -1);
-          options[params[x]] = args[i].split(",");
-          console.log(options[params[x]]);
-
-        }else if(args[i].substring(0,1) == "("){
-          //repackage as an object
-          args[i] = args[i].substring(1, args[i].length -1);
-          var ar = args[i].split(",");
-          options[params[x]] = {min: parseFloat(ar[0]), max: parseFloat(ar[1])};
-
-
-        }else{
-          options[params[x]] = isNumber(args[i]) ? parseFloat(args[i]) : args[i];
-        }
-        
-        args.splice(i,1); 
-      }
-  }
-
-  return options;
-}
 
 /*----------------------------------NUMBERS--------------------------------------*/
 
@@ -495,35 +478,41 @@ NUMBERS_CMDS["_q"] = function(args, callback){
 
 NUMBERS_CMDS["_i"] = function(args, callback){
     //instant change
-    var options = parseNumbersOptions(args);
+    var options = parseOptions(args, "numbers", callback);
     msgStream.emit('message', {type: 'numbersChange', 'value': options, thread: cliThread});
-    callback();
+
 }
 
 
-function parseNumbersOptions(args){
 
-  //this could be changed into an abstract function
+function parseOptions(args, type, callback){
+
   var options = {}; 
 
   if(args.length == 0){ //default to previous options
-    for(var i in wordsPresets.cr){
-      options[i] = wordsPresets.cr[i];
+    for(var i in currentOptions[type]){
+      options[i] = currentOptions[type][i];
     }
     return options;
   }
 
   var i = args.indexOf("-p");
   
-  if(i > -1){
+  while(i > -1){
       args.splice(i,1);      
-      for(var x in wordsPresets[args[i]]){
-        options[x] = wordsPresets[args[i]][x];
+      var preset = Presets.findOne({type: type, name: args[i]}).options;
+      if(preset){
+        for(var x in preset){
+          options[x] = preset[x];
+        }
       }
       args.splice(i,1);
+      i = args.indexOf("-p");
   }
 
-  var params = Object.keys(numbersPresets.df);
+
+
+  var params = Object.keys(currentOptions[type]);
 
   for(var x = 0; x < params.length; x++){
       i = args.indexOf("-" + params[x]);
@@ -533,7 +522,6 @@ function parseNumbersOptions(args){
           //repackage as an array
           args[i] = args[i].substring(1, args[i].length -1);
           options[params[x]] = args[i].split(",");
-          console.log(options[params[x]]);
 
         }else if(args[i].substring(0,1) == "("){
           //repackage as an object
@@ -550,7 +538,24 @@ function parseNumbersOptions(args){
       }
   }
 
+  i = args.indexOf("-s");
+
+  if(i > -1){
+    args.splice(i,1);
+    Meteor.call("createPreset", Meteor.user()._id, {type: type, name: args[i], options: options},cmdReturn);
+    args.splice(i,1);
+    
+  }else{
+    if(typeof(callback) != "undefined")callback();
+  }
+  
+  for(var i in options){
+    currentOptions[type][i] = options[i]; //copy the changes to current options
+  }
+
   return options;
+  
+  
 }
 
 

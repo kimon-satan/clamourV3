@@ -54,7 +54,7 @@ Meteor.startup(function(){
 		  }
 
 		 Presets.insert({type: "numbers", name: "df", options: p});
-		 
+
 	}
 
 
@@ -262,6 +262,24 @@ Meteor.methods({
 				UserGroups.remove({name: args});
 
 			}
+		}
+	},
+
+	createPreset: function(userId, args){
+
+		if(checkAdmin(userId)){
+			console.log("adding preset");
+			Presets.upsert({type: args.type, name: args.name}, args); 
+			var a = Object.keys(args.options);
+			return "adding " + args.type + " preset " + args.name + " with " + a.length + " arguments";
+		}
+
+	},
+
+	removePreset: function(userId, args){
+		if(checkAdmin(userId)){
+			Presets.remove({type: args.type, name: args.name});
+			return "removing " + args.name + " in " + args.type;
 		}
 	},
 
