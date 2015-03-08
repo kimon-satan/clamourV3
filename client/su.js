@@ -2,6 +2,7 @@
 var CLMR_CMDS = {}
 var CHAT_CMDS = {}
 var WORDS_CMDS = {}
+var NUMBERS_CMDS = {}
 
 var cli_mode = "clmr";
 
@@ -15,7 +16,8 @@ var isRandVoice_wds = false;
 var pwtOptions = {};
 var gpnOptions = {};
 
-var wordsPresets = {}; 
+var wordsPresets = {};  //this should be in a DB
+var numbersPresets = {};
 
 UI.registerHelper('isSu', function(){ return Meteor.user().profile.role == 'admin';});
 UI.registerHelper('isSuLogin', function(){ return Session.get('isAdmin')});
@@ -50,32 +52,17 @@ Template.su.created = function(){
   Meteor.subscribe("UserData", Meteor.user()._id);
   Meteor.subscribe("AllPlayers", Meteor.user()._id);
   Meteor.subscribe("UserGroups", Meteor.user()._id);
+  Meteor.subscribe("Presets");
 
   Session.set("currentMode", "none");
-  Session.set("numbersVoice", voices[0]);
-  Session.set("wordsVoice" , voices[0]);
-  Session.set("currentWord", words[0]);
+
+
   Session.set("offTVoice", voices[0]);
   Session.set("onOffVoice", voices[0]);
   Session.set('currentSynth', synths[0]);
-  Session.set('currentFilter', 'none');
 
-  wordsPresets.df = {
-    vol: 0.2,
-    pan:  0.0 ,
-    fade: 0.5,
-    rand: false,
-    splay: 0.25,
-    voice: voices[0],
-    reset: 0.0,
-    word: words[0],
-    kills: true
-  }
 
-  wordsPresets.cr = {};
-  for( var i in wordsPresets.df){
-    wordsPresets.cr[i] = wordsPresets.df[i];
-  }
+
 
 }
 
@@ -231,6 +218,7 @@ evaluateCommand = function(cmd, callback){
     case "clmr": cmds = CLMR_CMDS;break;
     case "chat": cmds = CHAT_CMDS;break;
     case "words": cmds = WORDS_CMDS;break;
+    case "numbers": cmds = NUMBERS_CMDS; break;
   }
 
   //get rid of any unnecessary spaces
@@ -307,10 +295,9 @@ CLMR_CMDS["_words"] = function(args, callback){
             //only make the call once the thread has been added
             if(!e){
 
-              var options = {};
-              options = wordsPresets.df;
+              var p = Presets.findOne({type: "words", name: "df"}).options;
               msgStream.emit('message', {type: 'screenChange', 'value' : 'words', thread: cliThread});
-              msgStream.emit('message', {type: 'wordsReset', 'value': options, thread: cliThread});
+              msgStream.emit('message', {type: 'wordsReset', 'value': p, thread: cliThread});
               println(r);
 
             }else{
@@ -321,12 +308,49 @@ CLMR_CMDS["_words"] = function(args, callback){
       );
     }else{
 
-      var options = {};
-      options = wordsPresets.df;
+      var p = Presets.findOne({type: "words", name: "df"}).options;
       msgStream.emit('message', {type: 'screenChange', 'value' : 'words', thread: cliThread});
       msgStream.emit('message', {type: 'wordsReset', 'value': options, thread: cliThread});
       callback();
     }
+
+}
+
+CLMR_CMDS["_numbers"] = function(args, callback){
+
+  cli_mode = "numbers";
+  cliThread = generateTempId(10);  //this will need to change in a minute to keep last thread
+
+  var selector = parseFilters(args);
+  selector.mode = cli_mode;
+  if(selector){
+    selector.thread = cliThread;
+
+    Meteor.call("addThreadToPlayers", Meteor.user()._id, selector,
+      function(e, r){
+  //only make the call once the thread has been added
+        if(!e){
+
+          var p = Presets.findOne({type: "numbers", name: "df"}).options;
+          msgStream.emit('message', {type: 'screenChange', 'value' : 'numbers', thread: cliThread});
+          msgStream.emit('message', {type: 'numbersReset', 'value': p, thread: cliThread});
+          println(r);
+
+        }else{
+          println(e.reason);
+        }
+        newCursor();
+      }
+    );
+  }else{
+
+    var p = Presets.findOne({type: "numbers", name: "df"}).options;
+
+    msgStream.emit('message', {type: 'screenChange', 'value' : 'numbers', thread: cliThread});
+    msgStream.emit('message', {type: 'numbersReset', 'value': p, thread: cliThread});
+    callback();
+  }
+
 
 }
 
@@ -410,8 +434,6 @@ WORDS_CMDS["_d"] = function(args, callback){
     callback();
 }
 
-
-
 function parseWordsOptions(args){
 
   var options = {};
@@ -462,6 +484,75 @@ function parseWordsOptions(args){
 
   return options;
 }
+
+/*----------------------------------NUMBERS--------------------------------------*/
+
+NUMBERS_CMDS["_q"] = function(args, callback){
+    cli_mode = "clmr";
+    Meteor.call("killThread", Meteor.user()._id, cliThread); 
+    callback();
+}
+
+NUMBERS_CMDS["_i"] = function(args, callback){
+    //instant change
+    var options = parseNumbersOptions(args);
+    msgStream.emit('message', {type: 'numbersChange', 'value': options, thread: cliThread});
+    callback();
+}
+
+
+function parseNumbersOptions(args){
+
+  //this could be changed into an abstract function
+  var options = {}; 
+
+  if(args.length == 0){ //default to previous options
+    for(var i in wordsPresets.cr){
+      options[i] = wordsPresets.cr[i];
+    }
+    return options;
+  }
+
+  var i = args.indexOf("-p");
+  
+  if(i > -1){
+      args.splice(i,1);      
+      for(var x in wordsPresets[args[i]]){
+        options[x] = wordsPresets[args[i]][x];
+      }
+      args.splice(i,1);
+  }
+
+  var params = Object.keys(numbersPresets.df);
+
+  for(var x = 0; x < params.length; x++){
+      i = args.indexOf("-" + params[x]);
+      if(i > -1){
+        args.splice(i,1); 
+        if(args[i].substring(0,1) == "["){
+          //repackage as an array
+          args[i] = args[i].substring(1, args[i].length -1);
+          options[params[x]] = args[i].split(",");
+          console.log(options[params[x]]);
+
+        }else if(args[i].substring(0,1) == "("){
+          //repackage as an object
+          args[i] = args[i].substring(1, args[i].length -1);
+          var ar = args[i].split(",");
+          options[params[x]] = {min: parseFloat(ar[0]), max: parseFloat(ar[1])};
+
+
+        }else{
+          options[params[x]] = isNumber(args[i]) ? parseFloat(args[i]) : args[i];
+        }
+        
+        args.splice(i,1); 
+      }
+  }
+
+  return options;
+}
+
 
 
 
@@ -544,143 +635,8 @@ function parseFilters(args){
 
 
 
-/*--------------------------------------------------------numbers-------------------------------------------*/
 
 
-Template.su_numbers.currentVoice = function(){return Session.get("numbersVoice")}
-
-
-Template.su_numbers.events({
-
-'click #replay':function(e){
-
-    var options = {};
-
-    options = checkSendAll(options);
-
-    msgStream.emit('message', {type: 'numbersReset', 'value': options});
-    e.preventDefault();
-  },
-
-'click #numbersInit':function(e){
-  
-      var options = {};
-      options = checkSendAll(options);
-      msgStream.emit('message', {type: 'screenChange', 'value' : 'numbers'});
-      msgStream.emit('message', {type: 'numbersReset', 'value': options});
-      e.preventDefault();
-
-  },
-
-'click #lockOn':function(e){
-
-  isLockOn = true;
-  $('#lockOn').addClass('btn-primary');
-  $('#lockOn').removeClass('btn-default');
-  $('#lockOff').removeClass('btn-primary');
-  $('#lockOff').addClass('btn-default');
-
-  var options = {lockOn: isLockOn};
-  options = checkSendAll(options);
-  msgStream.emit('message', {type: 'numbersChange', 'value': options});
-  e.preventDefault();
-},
-
-'click #lockOff':function(e){
-
-  isLockOn = false;
-  $('#lockOn').addClass('btn-default');
-  $('#lockOn').removeClass('btn-primary');
-  $('#lockOff').removeClass('btn-default');
-  $('#lockOff').addClass('btn-primary');
-  
-  var options = {lockOn: isLockOn};
-  options = checkSendAll(options);
-  msgStream.emit('message', {type: 'numbersChange', 'value': options});
-  e.preventDefault();
-},
-
-'click #randVoices_num': function(e){
-
-    isRandVoice_Num = true;
-    $('#randVoices_num').removeClass('btn-default');
-    $('#randVoices_num').addClass('btn-primary');
-    var options = {isRandomVoice: isRandVoice_Num};
-    options = checkSendAll(options);
-    msgStream.emit('message', {type: 'numbersChange', 'value': options});
-
-    e.preventDefault();
-},
-
-'click #notRandVoices_num': function(e){
-
-    isRandVoice_Num = false;
-    $('#randVoices_num').addClass('btn-default');
-    $('#randVoices_num').removeClass('btn-primary');
-    var options = {isRandomVoice: isRandVoice_Num};
-    options = checkSendAll(options);
-    msgStream.emit('message', {type: 'numbersChange', 'value': options});
-
-    e.preventDefault();
-},
-
-'click .voiceItem':function(e){
-
-  if(isRandVoice_Num){
-      isRandVoice_Num = false;
-      $('#randVoices_num').addClass('btn-default');
-      $('#randVoices_num').removeClass('btn-primary');
-    }
-  Session.set("numbersVoice", e.currentTarget.id);
-  var options = {voice: e.currentTarget.id, isRandomVoice: false};
-  options = checkSendAll(options);
-  msgStream.emit('message', {type: 'numbersChange', 'value': options});
-
-  e.preventDefault();
-},
-
-'click .numbersInput, blur .numbersInput':function(e){
-
-    var options = {};
-    options[e.currentTarget.id] = $('#' + e.currentTarget.id).val();
-    options = checkSendAll(options);
-    msgStream.emit('message', {type: 'numbersChange', 'value': options});
-
-
-}
-
-
-});
-
-
-function checkSendAll(options){
-
-  if($('#sendAll').prop('checked')){
-      options = getNumbersOptions();
-  }
-
-  return options;
-}
-
-function getNumbersOptions(){
-
-  var options = {
-
-    lockOn: isLockOn, 
-    startIndex: $('#startIndex.numbersInput').val(),
-    endIndex: $('#endIndex.numbersInput').val(),
-    volume: $('#volume.numbersInput').val(),
-    pan:  $('#pan.numbersInput').val() ,
-    fadeTime: $('#fadeTime.numbersInput').val(),
-    isRandomVoice: isRandVoice_Num,
-    splay: $('#splay.numbersInput').val(),
-    voice: Session.get('numbersVoice'),
-    resetPause: $('#resetPause.numbersInput').val()
-
-  };
-
-  return options
-}
 
 
 /*---------------------------------------------------- on off -------------------------------------------*/

@@ -15,6 +15,49 @@ Meteor.startup(function(){
 		Accounts.createUser({username: 'clamourAdmin', password: 'ontap'});
 	}
 
+//create default presets
+
+	if(!Presets.findOne({type: "words", name: "df"})){
+		console.log("creating words defaults");
+		//create one
+		var p = {
+		    vol: 0.2,
+		    pan:  0.0 ,
+		    fade: 0.5,
+		    rand: false,
+		    splay: 0.25,
+		    voice: voices[0],
+		    reset: 0.0,
+		    word: words[0],
+		    kills: true
+		  }
+
+		 Presets.insert({type: "words", name: "df", options: p});
+	}
+
+	if(!Presets.findOne({type: "numbers", name: "df"})){
+		console.log("creating numbers defaults");
+		//create one
+		var p = {
+
+		    lock: false, 
+		    start: 10,
+		    end: 0,
+		    vol: 0.2,
+		    pan:  0,
+		    fade: 0.5,
+		    rand: false,
+		    splay: 0,
+		    voice: voices[0],
+		    reset: 0.0
+
+		  }
+
+		 Presets.insert({type: "numbers", name: "df", options: p});
+		 
+	}
+
+
 
 
 });
@@ -61,6 +104,10 @@ Meteor.publish('MyAccount', function(userId){
 	
 	return Meteor.users.find(userId); 
 	
+});
+
+Meteor.publish('Presets', function(){
+	return Presets.find({}); 
 });
 
 

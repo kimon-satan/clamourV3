@@ -2,43 +2,13 @@
 
 msgStream = new Meteor.Stream('msgStream');
 
-words = ["go", "start", "stop", "end"];
-voices = ['peterUK' , 'grahamUK', 'rachelUK' , 'catherineUK', 'bridgetUK',  'rayUS', 'ryanUS', 'paulUS', 'heatherUS', 'kateUS'];
-synths = ['playWithTone', 'granPulseNoise'];
+
 
 var buttonPressed = false;
 var panOffset = Math.random() * 2 - 1;
 
-var numbersOptions = {
-
-  lockOn: false,
-  endIndex: 0,
-  startIndex: 10,
-  amp: 0.5,
-  pan: 0,
-  splay: 0,
-  volume: 0.2,
-  fadeTime: 0.5,
-  voice: 'peterUK',
-  isRandomVoice: false,
-  resetPause: 0.0
-
-};
-
-var wordsOptions = {
-
-  amp: 0.5,
-  pan: 0,
-  splay: 0,
-  vol: 0.2,
-  fade: 0.5,
-  reset: 0.0,
-  voice: voices[0],
-  word: words[0],
-  rand: false,
-  kills: false
-
-};
+var numbersOptions = {};
+var wordsOptions = {};
 
 var onOptions = {
 
@@ -77,18 +47,27 @@ Template.clamour.created = function(){
       Session.set('screenMode', UserData.findOne(Meteor.user()._id, {fields: {view: 1}}).view);
   });
 
-  var v = {
+  Meteor.subscribe("Presets",  function(){
+    //do something
 
-    numbers: numbersOptions.voice,
-    on: onOptions.voice,
-    off: offOptions.voice,
-    words: wordsOptions.voice
+    numbersOptions = Presets.findOne({type: "numbers", name: "df"}).options;
+    wordsOptions = Presets.findOne({type: "words", name: "df"}).options;
 
-  };
+    var v = {
 
-  Session.set('voice', v);
+      numbers: numbersOptions.voice,
+      on: onOptions.voice,
+      off: offOptions.voice,
+      words: wordsOptions.voice
 
-  UserData.update(Meteor.user()._id, {$set: {voice: v.numbers}});
+    };
+
+    Session.set('voice', v);
+
+    UserData.update(Meteor.user()._id, {$set: {voice: v.numbers}});
+
+  });
+  
 
   var oo = {isOnButton: false, isOnActive: false, isOffButton: false};
   Session.set("onOffButtons", oo);
@@ -174,28 +153,6 @@ Template.words.events({
 
 
 
-function parseOptions(options_i, options_o){
-
-
-  for(var i in options_o){
-
-    if(typeof(options_i[i]) == "string" || typeof(options_i[i]) == "number"){
-        options_o[i] = isNumber(options_i[i])? parseFloat(options_i[i]) : options_i[i];
-    }else if(typeof(options_i[i]) == "object"){
-        if(options_i[i] instanceof Array){
-          var idx = parseInt(Math.floor(Math.random() * options_i[i].length));
-          options_o[i] = isNumber(options_i[i][idx])? parseFloat(options_i[i][idx]) : options_i[i][idx];
-        }else{
-          var r = parseFloat(options_i[i].max) - parseFloat(options_i[i].min);
-          options_o[i] = Math.random() * r + options_i[i].min;
-
-        }
-    }
-
-  }
-
-}
-
 
 /*-----------------------------------------------------NUMBERS ----------------------------------------*/
 
@@ -212,7 +169,8 @@ Template.numbers.events({
     buttonPressed = true;
     var cn = Session.get('currNumber');
 
-    var fstring = 'fadeInOut ' + numbersOptions.fadeTime + 's forwards'
+    console.log(numbersOptions.fade);
+    var fstring = 'fadeInOut ' + numbersOptions.fade + 's forwards'
    $('#numberBox').css('-webkit-animation', fstring ); 
    $('#numberBox').css('animation', fstring); 
 
@@ -223,9 +181,10 @@ Template.numbers.events({
       num: cn,
       voice: Session.get('voice').numbers,
       pan: numbersOptions.pan + numbersOptions.splay * panOffset,
-      volume: numbersOptions.volume
+      vol: numbersOptions.vol
 
     };
+
 
     Meteor.call('numPing', soundOptions);
 
@@ -234,31 +193,31 @@ Template.numbers.events({
       buttonPressed = false;
 
 
-      if(numbersOptions.startIndex > numbersOptions.endIndex){
-        if(numbersOptions.lockOn){
-          cn = Math.max(numbersOptions.endIndex, cn - 1);
+      if(numbersOptions.start > numbersOptions.end){
+        if(numbersOptions.lock){
+          cn = Math.max(numbersOptions.end, cn - 1);
         }else{
           cn = cn - 1;
-          if(cn < numbersOptions.endIndex){
+          if(cn < numbersOptions.end){
             
             var v = Session.get('voice');
-            v.numbers = (numbersOptions.isRandomVoice) ? chooseRandomVoice() : numbersOptions.voice;
+            v.numbers = (numbersOptions.rand) ? chooseRandomVoice() : numbersOptions.voice;
             Session.set('voice', v);
             numbersOptions.voice = v.numbers;
             UserData.update(Meteor.user()._id, {$set: {voice: v.numbers}});
             
-            cn = numbersOptions.startIndex;
+            cn = numbersOptions.start;
           }
         }
       }else{
-        if(numbersOptions.lockOn){
-          cn = Math.min(numbersOptions.endIndex, parseInt(cn) + 1);
+        if(numbersOptions.lock){
+          cn = Math.min(numbersOptions.end, parseInt(cn) + 1);
         }else{
           cn = parseInt(cn) + 1;
-          if(cn > parseInt(numbersOptions.endIndex)){
-            cn = numbersOptions.startIndex;
+          if(cn > parseInt(numbersOptions.end)){
+            cn = numbersOptions.start;
             var v = Session.get('voice');
-            v.numbers = (numbersOptions.isRandomVoice) ? chooseRandomVoice() : numbersOptions.voice;
+            v.numbers = (numbersOptions.rand) ? chooseRandomVoice() : numbersOptions.voice;
             Session.set('voice', v);
             numbersOptions.voice = v.numbers;
             UserData.update(Meteor.user()._id, {$set: {voice: v.numbers}});
@@ -273,7 +232,7 @@ Template.numbers.events({
       $('#numberBox').css('-webkit-animation', 'nil'); 
       $('#numberBox').css('animation', 'nil'); 
 
-    },numbersOptions.fadeTime * 1000);
+    },numbersOptions.fade * 1000);
    
     e.preventDefault();
   }
@@ -283,18 +242,7 @@ Template.numbers.events({
 Template.numbers.currNumber = function(){return Session.get('currNumber');}
 Template.numbers.isPause = function(){return Session.get('isPause');}
 
-function setNumbersOptions(options){
-  if(typeof options.lockOn !== "undefined")numbersOptions.lockOn = options.lockOn;
-  if(typeof options.startIndex !== "undefined")numbersOptions.startIndex = parseInt(options.startIndex);
-  if(typeof options.endIndex !== "undefined")numbersOptions.endIndex = parseInt(options.endIndex);
-  if(typeof options.volume !== "undefined")numbersOptions.volume = parseFloat(options.volume);
-  if(typeof options.pan !== "undefined")numbersOptions.pan = parseFloat(options.pan);
-  if(typeof options.splay !== "undefined"){numbersOptions.splay = parseFloat(options.splay);}
-  if(typeof options.fadeTime !== "undefined")numbersOptions.fadeTime = parseFloat(options.fadeTime);
-  if(typeof options.isRandomVoice !== "undefined")numbersOptions.isRandomVoice = options.isRandomVoice;
-  if(typeof options.voice !== "undefined"){numbersOptions.voice = options.voice;}
-  if(typeof options.resetPause !== "undefined"){numbersOptions.resetPause = options.resetPause;}
-}
+
 
 /*-----------------------------------------------CHAT --------------------------------------------*/
 Template.chat.chatText = function(){return Session.get('chatText');}
@@ -462,6 +410,29 @@ Template.offTransition.currentVoice = function(){return Session.get('offTVoice')
 
 /*-------------------------------------RECIEVERS-------------------------------------------*/
 
+
+function parseOptions(options_i, options_o){
+
+  for(var i in options_o){
+
+    if(typeof(options_i[i]) == "string" || typeof(options_i[i]) == "number"){
+        options_o[i] = isNumber(options_i[i])? parseFloat(options_i[i]) : options_i[i];
+    }else if(typeof(options_i[i]) == "object"){
+        if(options_i[i] instanceof Array){
+          var idx = parseInt(Math.floor(Math.random() * options_i[i].length));
+          options_o[i] = isNumber(options_i[i][idx])? parseFloat(options_i[i][idx]) : options_i[i][idx];
+        }else{
+          var r = parseFloat(options_i[i].max) - parseFloat(options_i[i].min);
+          options_o[i] = Math.random() * r + options_i[i].min;
+
+        }
+    }
+
+  }
+
+}
+
+
 msgStream.on('userMessage', function(message){
 
    
@@ -495,18 +466,18 @@ msgStream.on('message', function(message){
 
   if(message.type == 'numbersReset'){
     
-    
-    setNumbersOptions(message.value);
-     if(numbersOptions.resetPause > 0){
+    parseOptions(message.value, numbersOptions);
+
+     if(numbersOptions.reset > 0){
         Session.set('isPause', true);
         setTimeout(function(){
         Session.set('isPause', false);
-      },numbersOptions.resetPause * 1000)
+      },numbersOptions.reset * 1000)
     }
-    Session.set('currNumber' , numbersOptions.startIndex);
+    Session.set('currNumber' , numbersOptions.start);
 
     var v = Session.get('voice');
-    v.numbers = (numbersOptions.isRandomVoice) ?  chooseRandomVoice() : numbersOptions.voice;
+    v.numbers = (numbersOptions.rand) ?  chooseRandomVoice() : numbersOptions.voice;
     Session.set('voice', v);
     numbersOptions.voice = v.numbers;
     UserData.update(Meteor.user()._id, {$set: {voice: v.numbers}});

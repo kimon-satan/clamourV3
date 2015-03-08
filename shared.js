@@ -1,5 +1,10 @@
 UserData = new Meteor.Collection('UserData');
 UserGroups = new Meteor.Collection('UserGroups');
+Presets = new Meteor.Collection('Presets');
+
+words = ["go", "start", "stop", "end"];
+voices = ['peterUK' , 'grahamUK', 'rachelUK' , 'catherineUK', 'bridgetUK',  'rayUS', 'ryanUS', 'paulUS', 'heatherUS', 'kateUS'];
+synths = ['playWithTone', 'granPulseNoise'];
 
 UserGroups.allow({
 
