@@ -49,15 +49,39 @@ Meteor.startup(function(){
 		    rand: false,
 		    splay: 0,
 		    voice: voices[0],
-		    reset: 0.0
-
+		    reset: false,
+		    pause: 0
 		  }
 
 		 Presets.insert({type: "numbers", name: "df", options: p});
 
 	}
 
+	if(!Presets.findOne({type: "onoff", name: "df"})){
+		console.log("creating onoff defaults");
+		//create one
+		var p = {
 
+		    synth: "playWithTone", 
+		    vvol: 0.25,
+		    svol: 0.05,
+		    pan:  0,
+		    fade: 0.5,
+		    rand: false,
+		    minf: 40,
+		    frange: 24,
+		    noisef: 20.0,
+		    variance: 0.0,
+		    trigrate: 1.0,
+		    envdur: 1.0,
+		    endpos: 0.8,
+		    splay: 0,
+		    voice: voices[0]
+		  }
+
+		 Presets.insert({type: "onoff", name: "df", options: p});
+
+	}
 
 
 });
@@ -108,6 +132,10 @@ Meteor.publish('MyAccount', function(userId){
 
 Meteor.publish('Presets', function(){
 	return Presets.find({}); 
+});
+
+Meteor.publish('Threads', function(){
+	return Threads.find({}); 
 });
 
 
@@ -161,6 +189,19 @@ Meteor.methods({
 
 		if(checkAdmin(userId)){
 			UserData.update({activeThreads: {$in: [thread]}}, {$pull: {activeThreads: thread}},{multi: true});
+			Threads.remove({thread: thread});
+			return true;
+		}else{
+			return false;
+		}
+
+	},
+
+	killThreads: function(userId, thread){
+
+		if(checkAdmin(userId)){
+			UserData.update({}, {$set: {activeThreads: []}},{multi: true});
+			Threads.remove({});
 			return true;
 		}else{
 			return false;
@@ -175,6 +216,7 @@ Meteor.methods({
 
 		if(checkAdmin(userId)){
 			
+			Threads.insert({thread: args.thread});
 
 			var uids = selectPlayers(args);
 			var msg =  args.mode + " with " + uids.length + " players with activeThread: " + args.thread; //this message needs to change
@@ -280,6 +322,13 @@ Meteor.methods({
 		if(checkAdmin(userId)){
 			Presets.remove({type: args.type, name: args.name});
 			return "removing " + args.name + " in " + args.type;
+		}
+	},
+
+	clearPresets: function(userId, args){
+
+		if(checkAdmin(userId)){
+			Presets.remove({});
 		}
 	},
 
@@ -429,6 +478,9 @@ function selectPlayers(args){
 		break;
 		case "voice":
 			searchObj.voice = filter.not ?  {$ne: filter.voice} : filter.voice; 
+		break;
+		case "thread":
+			searchObj.activeThreads = filter.not  ? {$nin: [filter.thread]} : {$in: [filter.thread]}
 		break;
 		case "group":
 			if(typeof(searchObj.groups) == "undefined"){

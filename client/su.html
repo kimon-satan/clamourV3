@@ -34,6 +34,8 @@
 
 		{{>su_synth_ctrl}}
 
+		{{>su_threads}}
+
 		{{>su_players}}
 
 		{{>su_playerTable}}
@@ -54,6 +56,32 @@
 			</div>
 		</div>
 	</div>
+</template>
+
+<template name = "su_threads">
+	<div class="panel panel-default">
+		<div class="panel-body">
+			<h2>Threads</h2>
+
+
+				
+		</div>
+
+		<h4>player groups</h4>
+		<table class="table">
+			<thead>
+			    <th>thread</th>
+			    <th>population</th>
+			 </thead>
+			 {{#each threads}}
+			 	<tr class="">
+			 		<td>{{thread}}</td>
+			 		<td></td>
+			 	</tr>
+			 {{/each}}
+		</table>
+	</div>
+
 </template>
 
 

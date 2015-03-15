@@ -9,6 +9,7 @@ var panOffset = Math.random() * 2 - 1;
 
 var numbersOptions = {};
 var wordsOptions = {};
+var onoffOptions = {};
 
 var onOptions = {
 
@@ -52,7 +53,7 @@ Template.clamour.created = function(){
 
     numbersOptions = Presets.findOne({type: "numbers", name: "df"}).options;
     wordsOptions = Presets.findOne({type: "words", name: "df"}).options;
-
+    onoffOptions = Presets.findOne({type: "onoff", name: "df"}).options;
     var v = {
 
       numbers: numbersOptions.voice,
@@ -297,25 +298,26 @@ Template.onOff.events({
 
       msg: 'on',
       voice: Session.get('voice').on,
-      synth: onOptions.synth,
-      pan: parseFloat(onOptions.pan) + parseFloat(onOptions.splay * panOffset),
-      v_volume: onOptions.vVolume,
-      s_volume: onOptions.sVolume,
+      synth: onoffOptions.synth,
+      pan: parseFloat(onoffOptions.pan) + parseFloat(onoffOptions.splay * panOffset),
+      v_volume: onoffOptions.vvol,
+      s_volume: onoffOptions.svol
 
 
     };
 
 
-    if(onOptions.synth == 'playWithTone'){
-      soundOptions.freq =  Math.random() * parseInt(onOptions.fRng) + parseInt(onOptions.minFreq),
-      soundOptions.noiseFreq = onOptions.noiseFreq * (1 - (Math.random() * 2 - 1) * onOptions.nFreqV);
-    }else if(onOptions.synth == 'granPulseNoise'){
+    if(onoffOptions.synth == 'playWithTone'){
+      soundOptions.freq =  Math.random() * parseInt(onoffOptions.frange) + parseInt(onoffOptions.minf),
+      soundOptions.noiseFreq = onoffOptions.noisef * (1 - (Math.random() * 2 - 1) * onoffOptions.variance);
+    }else if(onoffOptions.synth == 'granPulseNoise'){
       var v 
-      soundOptions.trigRate = onOptions.trigRate * (1 - (Math.random() * 2 - 1) * onOptions.variance);
-      soundOptions.envDur = onOptions.envDur * (1 - (Math.random() * 2 - 1) * onOptions.variance);
-      soundOptions.endPosR = onOptions.endPosR * (1 - (Math.random() * 2 - 1) * onOptions.variance);
+      soundOptions.trigRate = onoffOptions.trigrate * (1 - (Math.random() * 2 - 1) * onoffOptions.variance);
+      soundOptions.envDur = onoffOptions.envfur * (1 - (Math.random() * 2 - 1) * onoffOptions.variance);
+      soundOptions.endPosR = onoffOptions.endpos * (1 - (Math.random() * 2 - 1) * onoffOptions.variance);
     }
 
+    console.log(soundOptions);
     Meteor.call('onOffPing', soundOptions);
 
     e.preventDefault();
@@ -332,8 +334,8 @@ Template.onOff.events({
 
       msg: 'off',
       voice: Session.get('voice').off,
-      pan: offOptions.pan + parseFloat(onOptions.splay * panOffset),
-      volume: offOptions.volume
+      pan: onoffOptions.pan + parseFloat(onoffOptions.splay * panOffset),
+      volume: onoffOptions.vvol
 
     };
 
@@ -467,27 +469,16 @@ msgStream.on('message', function(message){
   if(message.type == 'numbersReset'){
     
     parseOptions(message.value, numbersOptions);
-
-     if(numbersOptions.reset > 0){
-        Session.set('isPause', true);
-        setTimeout(function(){
-        Session.set('isPause', false);
-      },numbersOptions.reset * 1000)
-    }
-    Session.set('currNumber' , numbersOptions.start);
-
-    var v = Session.get('voice');
-    v.numbers = (numbersOptions.rand) ?  chooseRandomVoice() : numbersOptions.voice;
-    Session.set('voice', v);
-    numbersOptions.voice = v.numbers;
-    UserData.update(Meteor.user()._id, {$set: {voice: v.numbers}});
-
+    numbersReset();
 
   }
 
   if(message.type == 'numbersChange'){
 
     parseOptions(message.value, numbersOptions);
+    if(message.value.reset == true){
+      numbersReset();
+    }
 
   }
 
@@ -497,21 +488,23 @@ msgStream.on('message', function(message){
 
   }
 
-  if(message.type == 'wordsReset'){
-
-     parseOptions(message.value, wordsOptions);
-     var v = Session.get('voice');
-     v.words = wordsOptions.voice;
-     Session.set('voice', v);
-     Session.set('currentWord', wordsOptions.word);
-
-  }
 
   if(message.type == 'screenChange'){ 
 
-
+    var osm = Session.get('screenMode');
     Session.set('screenMode', message.value);
     UserData.update(Meteor.user()._id, {$set: {view: Session.get('screenMode')}});
+    if(osm != message.value && message.value == "numbers"){
+      numbersReset();
+    }
+
+  }
+
+  if(message.type == 'onoffChange'){
+
+    parseOptions(message.value, onoffOptions);
+    console.log(onoffOptions);
+    console.log(message.value);
 
   }
 
@@ -519,12 +512,12 @@ msgStream.on('message', function(message){
 
 
     var oo = Session.get('onOffButtons');
+
     if(!oo.isOnButton){
 
-      onOptions = message.value;
-
       var v = Session.get('voice');
-      v.on = (onOptions.isRandomVoice) ? chooseRandomVoice() : onOptions.voice;
+      v.on = (onoffOptions.isRandomVoice) ? chooseRandomVoice() : onoffOptions.voice;
+      console.log(v.on);
       Session.set('voice', v);
 
       oo.isOnButton = true;
@@ -543,10 +536,10 @@ msgStream.on('message', function(message){
     var oo = Session.get('onOffButtons');
     if(!oo.isOffButton){
        
-      offOptions = message.value;
+
 
       var v = Session.get('voice');
-      v.off = (message.value.isRandomVoice) ? chooseRandomVoice() : offOptions.voice;
+      v.off = (message.value.isRandomVoice) ? chooseRandomVoice() : onoffOptions.voice;
       Session.set('voice', v);
 
       oo.isOffButton = true;
@@ -587,7 +580,24 @@ msgStream.on('message', function(message){
 });
 
 
+function numbersReset(){
+    if(numbersOptions.pause > 0){
+      Session.set('isPause', true);
+      setTimeout(function(){
+        Session.set('isPause', false);
+        },numbersOptions.pause * 1000
+      )
+    }
+    Session.set('currNumber' , numbersOptions.start);
 
+    var v = Session.get('voice');
+    v.numbers = (numbersOptions.rand) ?  chooseRandomVoice() : numbersOptions.voice;
+    Session.set('voice', v);
+    numbersOptions.voice = v.numbers;
+    UserData.update(Meteor.user()._id, {$set: {voice: v.numbers}});
+
+ 
+}
 
 
 /*---------------------------------------------------------GENERIC FUNCTIONS-----------------------------------*/

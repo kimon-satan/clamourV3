@@ -1,10 +1,10 @@
 
 var CLMR_CMDS = {}
-var CHAT_CMDS = {}
-var WORDS_CMDS = {}
-var NUMBERS_CMDS = {}
 
 var cli_mode = "clmr";
+var sus_mode;
+var sus_list;
+var sus_idx;
 var currentOptions = {};
 
 var numPlayers;
@@ -57,8 +57,11 @@ Template.su.created = function(){
 
     currentOptions["numbers"] = Presets.findOne({type: "numbers", name: "df"}).options;
     currentOptions["words"] = Presets.findOne({type: "words", name: "df"}).options;
+    currentOptions["onoff"] = Presets.findOne({type: "onoff", name: "df"}).options;
 
   });
+
+  Meteor.subscribe("Threads");
 
   Session.set("currentMode", "none");
 
@@ -66,6 +69,7 @@ Template.su.created = function(){
   Session.set("offTVoice", voices[0]);
   Session.set("onOffVoice", voices[0]);
   Session.set('currentSynth', synths[0]);
+
 
 
 
@@ -129,7 +133,9 @@ Template.su_playerTable.selectedPlayers = function(){
 
 
 
-
+Template.su_threads.threads = function(){
+  return Threads.find({}).fetch();
+}
 
 
 /*-----------------------------------------------CLI ----------------------------------------*/
@@ -151,6 +157,11 @@ Template.su_cmd.events({
   'keydown #cmdText':function(e)
   {
     
+    if(sus_mode == "thread"){
+
+      return false;
+    }
+
     var str = $('#cmdText').val();    
     var cmds = str.split(cli_mode + ">");
     var cmd = cmds[cmds.length - 1];
@@ -168,6 +179,25 @@ Template.su_cmd.events({
 
   'keyup #cmdText':function(e){
         
+      if(sus_mode == "thread"){ //might be replaced with something more general purpose later
+
+        if(e.keyCode == 38){
+          sus_idx = Math.min(sus_idx + 1, sus_list.length -1);
+          replaceln(sus_list[sus_idx]);
+
+        }else if(e.keyCode == 40){
+
+          sus_idx = Math.max(sus_idx - 1, 0);
+          replaceln(sus_list[sus_idx]);
+
+        }else if(e.keyCode == 13){
+          newCursor();
+          cliThread = sus_list[sus_idx];
+          sus_mode = undefined;
+        }
+        return false;
+      }
+
       var str = $('#cmdText').val();    
       var cmds = str.split(cli_mode + ">");
       var cmd = cmds[cmds.length - 1];
@@ -214,18 +244,19 @@ println = function(str){
   $('#cmdText').val($('#cmdText').val() + "\n"+ str);   
 }
 
+replaceln = function(str){
+  var t = $('#cmdText').val();
+  t = t.substring(0,t.lastIndexOf("\n"));
+  t = t + "\n" + str;
+  $('#cmdText').val(t);
+
+}
+
 
 evaluateCommand = function(cmd, callback){
 
   var result_str;
-  var cmds, args;
-
-  switch(cli_mode){
-    case "clmr": cmds = CLMR_CMDS;break;
-    case "chat": cmds = CHAT_CMDS;break;
-    case "words": cmds = WORDS_CMDS;break;
-    case "numbers": cmds = NUMBERS_CMDS; break;
-  }
+  var args;
 
   //get rid of any unnecessary spaces
   cmd = cmd.replace(/,\s|\s,/g, ",");
@@ -241,8 +272,8 @@ evaluateCommand = function(cmd, callback){
   cmd = args[0];
   args = args.slice(1);
 
-  if(typeof(cmds[cmd]) != 'undefined'){
-    cmds[cmd](args, callback);
+  if(typeof(CLMR_CMDS[cmd]) != 'undefined'){
+    CLMR_CMDS[cmd](args, callback);
   }else{
     println("command not found")
     callback();
@@ -250,15 +281,19 @@ evaluateCommand = function(cmd, callback){
 
 }
 
+
 CLMR_CMDS["_chat"] = function(args, callback){
 
     cli_mode = "chat";
-    cliThread = generateTempId(10); //TODO: this will go soon ?
+
 
     var selector = parseFilters(args);
-    selector.mode = cli_mode;
+    if(selector)cliThread = generateTempId(10); //create a new thread as it's a new selection
+
+
     if(selector){
       selector.thread = cliThread;
+      selector.mode = cli_mode;
 
       Meteor.call("addThreadToPlayers", Meteor.user()._id, selector,
         function(e, r){
@@ -289,22 +324,24 @@ CLMR_CMDS["_chat"] = function(args, callback){
 CLMR_CMDS["_words"] = function(args, callback){
 
     cli_mode = "words";
-    cliThread = generateTempId(10);  //this will need to change in a minute to keep last thread
+
 
     var selector = parseFilters(args);
+    if(selector)cliThread = generateTempId(10); //create a new thread as it's a new selection
     var options = parseOptions(args, "words");
 
-    selector.mode = cli_mode;
     if(selector){
       selector.thread = cliThread;
+      selector.mode = cli_mode;
 
       Meteor.call("addThreadToPlayers", Meteor.user()._id, selector,
         function(e, r){
             //only make the call once the thread has been added
             if(!e){
 
+              msgStream.emit('message', {type: 'wordsChange', 'value': options, thread: cliThread});
               msgStream.emit('message', {type: 'screenChange', 'value' : 'words', thread: cliThread});
-              msgStream.emit('message', {type: 'wordsReset', 'value': options, thread: cliThread});
+
               println(r);
 
             }else{
@@ -315,8 +352,9 @@ CLMR_CMDS["_words"] = function(args, callback){
       );
     }else{
 
+      msgStream.emit('message', {type: 'wordsChange', 'value': options, thread: cliThread});
       msgStream.emit('message', {type: 'screenChange', 'value' : 'words', thread: cliThread});
-      msgStream.emit('message', {type: 'wordsReset', 'value': options, thread: cliThread});
+
       callback();
     }
 
@@ -325,21 +363,23 @@ CLMR_CMDS["_words"] = function(args, callback){
 CLMR_CMDS["_numbers"] = function(args, callback){
 
   cli_mode = "numbers";
-  cliThread = generateTempId(10);  //this will need to change in a minute to keep last thread
 
   var selector = parseFilters(args);
+  if(selector)cliThread = generateTempId(10); //create a new thread as it's a new selection
   var options = parseOptions(args, "numbers");
-  selector.mode = cli_mode;
+
   if(selector){
     selector.thread = cliThread;
+      selector.mode = cli_mode;
 
     Meteor.call("addThreadToPlayers", Meteor.user()._id, selector,
       function(e, r){
   //only make the call once the thread has been added
         if(!e){
 
+          msgStream.emit('message', {type: 'numbersChange', 'value': options, thread: cliThread});
           msgStream.emit('message', {type: 'screenChange', 'value' : 'numbers', thread: cliThread});
-          msgStream.emit('message', {type: 'numbersReset', 'value': options, thread: cliThread});
+          
           println(r);
 
         }else{
@@ -352,9 +392,83 @@ CLMR_CMDS["_numbers"] = function(args, callback){
 
     var p = Presets.findOne({type: "numbers", name: "df"}).options;
 
+    msgStream.emit('message', {type: 'numbersChange', 'value': options, thread: cliThread});
     msgStream.emit('message', {type: 'screenChange', 'value' : 'numbers', thread: cliThread});
-    msgStream.emit('message', {type: 'numbersReset', 'value': options, thread: cliThread});
+
+
+    //TO DO add an extra option for reset here ... perhaps just the same as instant
     callback();
+  }
+
+
+}
+
+CLMR_CMDS["_onoff"] = function(args, callback){
+
+  cli_mode = "onoff";
+  var selector = parseFilters(args);
+  if(selector)cliThread = generateTempId(10); //create a new thread as it's a new selection
+  var options = parseOptions(args, "onoff");
+
+
+  if(selector){
+    selector.thread = cliThread;
+      selector.mode = cli_mode;
+
+    Meteor.call("addThreadToPlayers", Meteor.user()._id, selector,
+      function(e, r){
+  //only make the call once the thread has been added
+        if(!e){
+
+          msgStream.emit('message', {type: 'onoffChange', 'value': options, thread: cliThread});
+          msgStream.emit('message', {type: 'screenChange', 'value' : 'onOff', thread: cliThread});
+          
+          println(r);
+
+        }else{
+          println(e.reason);
+        }
+        newCursor();
+      }
+    );
+  }else{
+
+    var p = Presets.findOne({type: "onoff", name: "df"}).options;
+
+    msgStream.emit('message', {type: 'onoffChange', 'value': options, thread: cliThread});
+    msgStream.emit('message', {type: 'screenChange', 'value' : 'onOff', thread: cliThread});
+
+
+    //TO DO add an extra option for reset here ... perhaps just the same as instant
+    callback();
+  }
+}
+
+CLMR_CMDS["_addon"] = function(args, callback){
+
+  if(cli_mode != "onoff"){
+    println("this is an onoff funtion only");
+    callback();
+  }else{
+    //will actually need filters and an a temporary thread
+    msgStream.emit('message', {type: 'addOn', 'value': {}, thread: cliThread});
+    callback();
+
+  }
+
+}
+
+
+CLMR_CMDS["_addoff"] = function(args,callback){
+
+  if(cli_mode != "onoff"){
+    println("this is an onoff funtion only");
+    callback();
+  }else{
+    //will actually need filters and an a temporary thread
+    msgStream.emit('message', {type: 'addOff', 'value': {}, thread: cliThread});
+    callback();
+
   }
 
 
@@ -419,69 +533,150 @@ CLMR_CMDS["_remove"] = function(args, callback){
 
   if(typeof(p) != "undefined" && typeof(t) != "undefined"){
     Meteor.call("removePreset", Meteor.user()._id, {type: t, name: p},cmdReturn);
+  }else{
+    callback();
   }
 
 
 }
 
+CLMR_CMDS["_lcmds"] = function(args, callback){
 
-/*-----------------------------------------------CHAT-------------------------------------------*/
+  for(var i in CLMR_CMDS){
+    println(i);
+  }
 
-CHAT_CMDS["_q"] = function(args, callback){ //need to think about what these commands can usefully do
+  callback();
+}
+
+CLMR_CMDS["_lpresets"] = function(args, callback){
+
+  var i = args.indexOf("-t");
+  var t;
+
+  if(i > -1){
+    args.splice(i,1);
+    t = args[i];
+    args.splice(i,1);
+  }else{
+    t = cli_mode;
+  }
+
+  Presets.find({type: t}).forEach(function(r){
+
+    println(r.name);
+  });
+
+  callback();
+
+}
+
+CLMR_CMDS["_loptions"] = function(args, callback){
+
+  var i = args.indexOf("-t");
+  var t;
+
+  if(i > -1){
+    args.splice(i,1);
+    t = args[i];
+    args.splice(i,1);
+  }else{
+    t = cli_mode;
+  }
+
+  for(var o in currentOptions[t]){
+    println(o + ": " + currentOptions[t][o]);
+  }
+
+
+  callback();
+
+}
+
+CLMR_CMDS["_q"] = function(args, callback){ //need to think about what these commands can usefully do
     cli_mode = "clmr";
-    Meteor.call("killThread", Meteor.user()._id, cliThread);
+    //Meteor.call("killThread", Meteor.user()._id, cliThread);
     callback();
 }
 
-CHAT_CMDS["_c"] = function(args, callback){
-    msgStream.emit('message', {type: 'chatClear', 'value':  "", thread: cliThread});
+CLMR_CMDS["_kill"] = function(args, callback){
+
+  Meteor.call("killThread", Meteor.user()._id, cliThread);
+  callback();
+
+}
+
+CLMR_CMDS["_killAll"] = function(args, callback){
+
+  Meteor.call("killThreads", Meteor.user()._id);
+  callback();
+
+}
+
+CLMR_CMDS["_thread"] = function(args, callback){
+
+  var r = Threads.find({},{sort: {thread: 1}}).fetch();
+  sus_list = [];
+  for(var i in r){
+    sus_list.push(r[i].thread);
+  }
+
+  if(sus_list.length > 0){
+    sus_mode = "thread";
+    sus_idx = sus_list.indexOf(cliThread);
+    println(sus_list[sus_idx]);
+  }else{
+    println("there are no threads ...");
+    callback();
+  }
+}
+
+/*-----------------------------------------------MORE SPECIFIC-------------------------------------------*/
+
+
+
+CLMR_CMDS["_c"] = function(args, callback){
+
+    if(cli_mode == "chat"){
+      msgStream.emit('message', {type: 'chatClear', 'value':  "", thread: cliThread});
+    }
+
     callback();
 }
 
-/*-----------------------------------WORDS-----------------------------------------*/
-
-
-WORDS_CMDS["_q"] = function(args, callback){
-    cli_mode = "clmr";
-    Meteor.call("killThread", Meteor.user()._id, cliThread); 
-    callback();
-}
-
-WORDS_CMDS["_i"] = function(args, callback){
+CLMR_CMDS["_i"] = function(args, callback){
     //instant change
-    var options = parseOptions(args , "words", callback);
-    msgStream.emit('message', {type: 'wordsChange', 'value': options, thread: cliThread});
+    if(cli_mode == "words" || cli_mode == "numbers"){
+      var options = parseOptions(args , cli_mode, callback);
+      msgStream.emit('message', {type: cli_mode + 'Change', 'value': options, thread: cliThread});
+    }
     
 }
 
-WORDS_CMDS["_r"] = function(args, callback){
+/*-----------------------------------TO DO-----------------------------------------*/
+
+
+
+/*
+CLMR_CMDS["_r"] = function(args, callback){
     //ramp change
     //change all players simultaneously over time
     callback();
 }
 
-WORDS_CMDS["_d"] = function(args, callback){
+CLMR_CMDS["_d"] = function(args, callback){
     //ramp change
     //change all players after a delay
     callback();
 }
 
+*/
 
 
-/*----------------------------------NUMBERS--------------------------------------*/
 
-NUMBERS_CMDS["_q"] = function(args, callback){
-    cli_mode = "clmr";
-    Meteor.call("killThread", Meteor.user()._id, cliThread); 
-    callback();
-}
 
-NUMBERS_CMDS["_i"] = function(args, callback){
-    //instant change
-    var options = parseOptions(args, "numbers", callback);
-    msgStream.emit('message', {type: 'numbersChange', 'value': options, thread: cliThread});
 
-}
+
 
 
 
@@ -594,6 +789,10 @@ function parseFilters(args){
           break;
           case "hasOff":
             filter.mode = "hasOff";
+          break;
+          case "cthread":
+            filter.mode = "thread";
+            filter.thread = cliThread;
           break;
 
           default:
