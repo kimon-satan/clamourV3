@@ -20,7 +20,9 @@
 
 	<div class="col-md-6">
 
-		{{>su_cmd}}
+		{{#each cli_idxs}}
+			{{>su_cmd id=this}}
+		{{/each}}
 
 
 	</div>
@@ -46,7 +48,7 @@
 
 	<div class="row">
 		<form role="form">
-			<textarea id="cmdText" rows="50" cols="70">
+			<textarea class="cmdText" id="cmdText_{{id}}" rows="50" cols="70">
 
 			</textarea>
 
@@ -156,7 +158,7 @@
 			  </thead>
 				{{#each selectedPlayers}}
 
-					<tr class="{{getSelected this}}">
+					<tr >
 			
 						<td>{{this._id}}</td>
 						<td>{{this.view}}</td>

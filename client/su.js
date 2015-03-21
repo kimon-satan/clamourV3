@@ -9,17 +9,16 @@ var sus_idx;
 
 var comIdx = 0;
 var prevComms = [];
+var clis = [];
 
 var currentOptions = {};
 
-var numPlayers;
-var cliThread, cliTempThread;
 
 var pwtOptions = {};
 var gpnOptions = {};
 
-var wordsPresets = {};  //this should be in a DB
-var numbersPresets = {};
+
+Session.set("CLIS", []);
 
 UI.registerHelper('isSu', function(){ return Meteor.user().profile.role == 'admin';});
 UI.registerHelper('isSuLogin', function(){ return Session.get('isAdmin')});
@@ -60,10 +59,20 @@ Template.su.created = function(){
 
   Meteor.subscribe("Threads");
 
-  Session.set("currentMode", "none");
+  var tcli = new CLI(0, "clmr");
 
+  clis = Session.get("CLIS");
+  clis.push(tcli);
+  var idxs = [];
+  for(var  i in clis){
+    idxs.push(clis[i].idx);
+  }
+
+  Session.set("CLI_IDXS", idxs);
 
 }
+
+Template.su.cli_idxs = function(){return Session.get("CLI_IDXS");}
 
 Template.su_synth_ctrl.events({
 
@@ -113,7 +122,7 @@ Template.su_players.population = function(){
   return this.members.length;
 }
 
-Template.su_playerTable.getSelected = function(p){if(p.activeThreads.indexOf(cliThread) > -1)return "selected"}
+//Template.su_playerTable.getSelected = function(p){if(p.activeThreads.indexOf(cli.thread) > -1)return "selected"}
 UI.registerHelper('checkCurrentMode', function(m){return (Session.get("currentMode") == m)});
 
 Template.su_playerTable.selectedPlayers = function(){
@@ -129,10 +138,174 @@ Template.su_threads.threads = function(){
 
 /*-----------------------------------------------CLI ----------------------------------------*/
 
+function CLI(idx, mode, thread){
+
+  this.idx = idx;
+  this.cli_mode = mode;
+  this.sus_mode;
+  this.sus_list;
+  this.sus_idx;
+  this.com_idx;
+  this.thread = thread;
+  this.temp_thread;
+  this.cursor_prefix;
+
+
+
+  this.newCursor = function(isNewLine){
+
+    this.cursor_prefix = this.cli_mode;
+    if(typeof(this.thread )!= "undefined" && this.thread.length > 0)this.cursor_prefix += "_" + this.thread;
+    this.cursor_prefix += ">"
+    if(typeof(isNewLine) == "undefined" || isNewLine){
+      console.log(this);
+      this.println(this.cursor_prefix);
+
+    }else{
+      var id_str = "#cmdText_" + this.idx;
+      $(id_str).val(this.cursor_prefix);
+    }
+
+    this.com_idx = prevComms.length;
+
+  } 
+
+  this.cmdReturn = function(error, result){
+
+    if(error){
+      this.println(error.reason);
+    }else if(result){
+      this.println(result)
+    }
+
+    this.newCursor();
+  }
+
+  this.println = function(str){
+    var id_str ='#cmdText_' + this.idx;
+    $(id_str).val($(id_str).val() + "\n"+ str);   
+  }
+
+  this.replaceln = function(str){
+    var id_str ='#cmdText' + "_" + this.idx;
+    var t = $(id_str).val();
+    t = t.substring(0,t.lastIndexOf("\n"));
+    t = t + "\n" + str;
+    $(id_str).val(t);
+  }
+
+  this.keydown = function(e){
+
+    var id_str ='#cmdText' + "_" + this.idx;
+
+    if(this.sus_mode == "thread" || e.keyCode == 38 || e.keyCode == 40){
+      return false;
+    }
+
+    var str = $(id_str).val();    
+    var cmds = str.split(this.cursor_prefix);
+    var cmd = cmds[cmds.length - 1];
+
+    if(e.keyCode == 8)
+    {
+      return (cmd.length > 0);
+    }else if(e.keyCode == 13){
+      return false;
+    }else if(e.keyCode == 75 && e.metaKey){
+      $(id_str).val("");
+      this.newCursor(false);
+    }
+
+  }
+
+  this.keyup  = function(e){
+
+    var id_str ='#cmdText' + "_" + this.idx;
+
+    if(this.sus_mode == "thread"){ 
+
+      return this.handleSus(e);
+
+    }else if(e.keyCode == 40){
+
+      if(prevComms.length > 0){
+        this.com_idx = Math.min(this.com_idx + 1, prevComms.length - 1);
+        this.replaceln(this.cursor_prefix + prevComms[this.com_idx]);
+      }
+      return false;
+    }
+    else if(e.keyCode == 38){
+
+      if(prevComms.length > 0){
+        this.com_idx = Math.max(0, this.com_idx - 1);
+        replaceln(this.cursor_prefix + prevComms[this.com_idx]);
+      }
+      return false;
+    }
+
+    var str = $(id_str).val();    
+    var cmds = str.split(this.cursor_prefix); //
+    var cmd = cmds[cmds.length - 1];
+
+    if(this.cli_mode == "chat" && cmd.substring(0,1) != "_"){
+      this.handleChatKeys(e, cmd);
+    }
+    else if(e.keyCode == 13)
+    {
+      if(prevComms.indexOf(cmd) == -1)prevComms.push(cmd);
+      cmd.replace(/\r?\n|\r/,"");
+      evaluateCommand(cmd, this);
+    }
+
+  }
+
+  this.handleSus = function(e){
+
+    if(e.keyCode == 38){
+      this.sus_idx = Math.min(this.sus_idx + 1, this.sus_list.length -1);
+      this.replaceln(this.sus_list[this.sus_idx]);
+
+    }else if(e.keyCode == 40){
+
+      this.sus_idx = Math.max(this.sus_idx - 1, 0);
+      this.replaceln(this.sus_list[this.sus_idx]);
+
+    }else if(e.keyCode == 13){
+      this.thread = this.sus_list[this.sus_idx];
+      this.newCursor();
+      this.sus_mode = undefined;
+    }
+    return false;
+
+  }
+
+  this.handleChatKeys = function(e, cmd){
+
+    if(e.keyCode == 13){
+      this.newCursor();
+      msgStream.emit('message', { type: 'chatNewLine', value:  "", thread: this.thread});
+    }else{
+      msgStream.emit('message', { type: 'chatUpdate', value:  cmd, thread: this.thread});
+    }
+
+  }
+
+
+
+}
+
 
 Template.su_cmd.created = function(){
 
-  Meteor.defer(function(){newCursor(false)});
+  var ctxt = this;
+
+  Meteor.defer(function(){
+
+      var id_str = ctxt.$('.cmdText')[0].id;
+      var id = parseInt(id_str.substring(id_str.lastIndexOf("_") + 1));
+      clis[id].newCursor(false);
+
+  });
  
 }
 
@@ -140,135 +313,25 @@ Template.su_cmd.created = function(){
 Template.su_cmd.events({
 
 
-  'keydown #cmdText':function(e)
+  'keydown .cmdText':function(e)
   {
     
-    if(sus_mode == "thread" || e.keyCode == 38 || e.keyCode == 40){
-      return false;
-    }
-
-    var str = $('#cmdText').val();    
-    var cmds = str.split(cursor_prefix);
-    var cmd = cmds[cmds.length - 1];
-
-    if(e.keyCode == 8)
-    {
-        return (cmd.length > 0);
-    }else if(e.keyCode == 13){
-        e.preventDefault();
-    }else if(e.keyCode == 75 && e.metaKey){
-      $('#cmdText').val("");
-      newCursor(false);
-    }
-
+    //will need to get id in a bit
+    return clis[0].keydown(e);
   },
 
-  'keyup #cmdText':function(e){
+  'keyup .cmdText':function(e){
 
-        
-      if(sus_mode == "thread"){ //might be replaced with something more general purpose later
-
-        if(e.keyCode == 38){
-          sus_idx = Math.min(sus_idx + 1, sus_list.length -1);
-          replaceln(sus_list[sus_idx]);
-
-        }else if(e.keyCode == 40){
-
-          sus_idx = Math.max(sus_idx - 1, 0);
-          replaceln(sus_list[sus_idx]);
-
-        }else if(e.keyCode == 13){
-          cliThread = sus_list[sus_idx];
-          newCursor();
-          sus_mode = undefined;
-        }
-        return false;
-
-      }else if(e.keyCode == 40){
-
-        if(prevComms.length > 0){
-          comIdx = Math.min(comIdx + 1, prevComms.length - 1);
-          replaceln(cursor_prefix + prevComms[comIdx]);
-        }
-        return false;
-      }
-      else if(e.keyCode == 38){
-
-        if(prevComms.length > 0){
-          comIdx = Math.max(0,comIdx - 1);
-          replaceln(cursor_prefix + prevComms[comIdx]);
-        }
-        return false;
-      }
-
-      var str = $('#cmdText').val();    
-      var cmds = str.split(cursor_prefix); //
-      var cmd = cmds[cmds.length - 1];
-
-      if(cli_mode == "chat" && cmd.substring(0,1) != "_"){ //potentially refacctor at somepoint
-        
-        if(e.keyCode == 13){
-          newCursor();
-          msgStream.emit('message', { type: 'chatNewLine', value:  "", thread: cliThread});
-        }else{
-          msgStream.emit('message', { type: 'chatUpdate', value:  cmd, thread: cliThread});
-        }
-
-      }
-      else if(e.keyCode == 13)
-      {
-        if(prevComms.indexOf(cmd) == -1)prevComms.push(cmd);
-        cmd.replace(/\r?\n|\r/,"");
-        evaluateCommand(cmd, newCursor);
-     
-      }
-
+     return clis[0].keyup(e);
   }
 
 
 
 });
 
-newCursor = function(isNewLine){
-
-  cursor_prefix = cli_mode;
-  if(typeof(cliThread )!= "undefined" && cliThread.length > 0)cursor_prefix += "_" + cliThread;
-  cursor_prefix += ">"
-  if(typeof(isNewLine) == "undefined" || isNewLine){
-    println(cursor_prefix);
-  }else{
-    $("#cmdText").val(cursor_prefix);
-  }
-
-  comIdx = prevComms.length;
-
-}
-
-cmdReturn = function(error, result){
-
-  if(error){
-    println(error.reason);
-  }else if(result){
-    println(result)
-  }
-
-  newCursor();
-}
-
-println = function(str){
-  $('#cmdText').val($('#cmdText').val() + "\n"+ str);   
-}
-
-replaceln = function(str){
-  var t = $('#cmdText').val();
-  t = t.substring(0,t.lastIndexOf("\n"));
-  t = t + "\n" + str;
-  $('#cmdText').val(t);
-
-}
 
 
-evaluateCommand = function(cmd, callback){
+evaluateCommand = function(cmd,  cli){
 
   var result_str;
   var args;
@@ -287,102 +350,102 @@ evaluateCommand = function(cmd, callback){
   args = args.slice(1);
 
   if(typeof(CLMR_CMDS[cmd]) != 'undefined'){
-    CLMR_CMDS[cmd](args, callback);
+    CLMR_CMDS[cmd](args,  cli);
   }else{
-    println("command not found")
-    callback();
+    cli.println("command not found");
+    cli.newCursor();
   }
 
 }
 
 
-CLMR_CMDS["_chat"] = function(args, callback){
+CLMR_CMDS["_chat"] = function(args,  cli){
 
-    cli_mode = "chat";
+    cli.cli_mode = "chat";
 
-    permThread(cli_mode, args, 
+    permThread(cli.cli_mode, args, 
     function(options, th){
       msgStream.emit('message', {type: 'screenChange', 'value' : 'chat', thread: th});
       msgStream.emit('message', {type: 'chatClear', 'value':  "", thread: th});
-    },callback);
+    }, cli);
 
 }
 
-CLMR_CMDS["_words"] = function(args, callback){
+CLMR_CMDS["_words"] = function(args,  cli){
 
-  cli_mode = "words";
+  cli.cli_mode = "words";
 
-  permThread(cli_mode, args, 
+  permThread(cli.cli_mode, args, 
   function(options, th){
     msgStream.emit('message', {type: 'wordsChange', 'value': options, thread: th});
     msgStream.emit('message', {type: 'screenChange', 'value' : 'words', thread: th});
-  },callback);
+  }, cli);
 
 }
 
-CLMR_CMDS["_numbers"] = function(args, callback){
+CLMR_CMDS["_numbers"] = function(args,  cli){
 
-  cli_mode = "numbers";
+  cli.cli_mode = "numbers";
 
-  permThread(cli_mode, args, 
+  permThread(cli.cli_mode, args, 
   function(options, th){
       msgStream.emit('message', {type: 'numbersChange', 'value': options, thread: th});
       msgStream.emit('message', {type: 'screenChange', 'value' : 'numbers', thread: th});
-  }, callback);
+  }, cli);
 
 
 }
 
-CLMR_CMDS["_onoff"] = function(args, callback){
+CLMR_CMDS["_onoff"] = function(args,  cli){
 
-  cli_mode = "onoff";
+  cli.cli_mode = "onoff";
 
-  permThread(cli_mode, args, 
+  permThread(cli.cli_mode, args, 
   function(options, th){
       msgStream.emit('message', {type: 'onoffChange', 'value': options, thread: th});
       msgStream.emit('message', {type: 'screenChange', 'value' : 'onOff', thread: th});
-  }, callback);
+  }, cli);
   
 }
 
 
 
-CLMR_CMDS["_addon"] = function(args, callback){
+CLMR_CMDS["_addon"] = function(args,  cli){
 
-  if(cli_mode != "onoff"){
-    println("this is an onoff funtion only");
-    callback();
+  if(cli.cli_mode != "onoff"){
+    cli.println("this is an onoff funtion only");
+    cli.newCursor();
   }else{
 
     //will actually need filters and an a temporary thread
       tempThread("_addon", args,
       function(options, th){
         msgStream.emit('message', {type: 'addOn', 'value': options, thread: th});
-      },callback);
+      }, cli);
 
   }
 
 }
 
 
-CLMR_CMDS["_addoff"] = function(args,callback){
+CLMR_CMDS["_addoff"] = function(args, cli){
 
-  if(cli_mode != "onoff"){
-    println("this is an onoff funtion only");
-    callback();
+  if(cli.cli_mode != "onoff"){
+    cli.println("this is an onoff funtion only");
+    cli.newCursor();
   }else{
     //will actually need filters and an a temporary thread
       tempThread("_addon", args,
       function(options, th){
         msgStream.emit('message', {type: 'addOff', 'value': options, thread: th});
-      },callback);
+      }, cli);
 
   }
 
 
 }
 
-CLMR_CMDS["_group"] = function(args, callback){
+CLMR_CMDS["_group"] = function(args,  cli){
     
     var name;
     if(args[0].substring(0,1) != "-"){
@@ -395,13 +458,13 @@ CLMR_CMDS["_group"] = function(args, callback){
       var s_args = {};
       s_args.orig = args[1];
       s_args.numGps = parseInt(args[2]);
-      Meteor.call("createSubGroups", Meteor.user()._id, s_args, cmdReturn);
+      Meteor.call("createSubGroups", Meteor.user()._id, s_args, cli.cmdReturn);
 
     }else if(args[0] == "-r"){
       if(typeof(args[1]) == "undefined"){
-        Meteor.call("removeGroups", Meteor.user()._id, cmdReturn);
+        Meteor.call("removeGroups", Meteor.user()._id, cli.cmdReturn);
       }else{
-        Meteor.call("removeGroups", Meteor.user()._id, args[1], cmdReturn);
+        Meteor.call("removeGroups", Meteor.user()._id, args[1], cli.cmdReturn);
       }
     }else{
 
@@ -411,16 +474,16 @@ CLMR_CMDS["_group"] = function(args, callback){
       }
 
       if(selector && selector.group){
-        Meteor.call("createGroup", Meteor.user()._id, selector, cmdReturn);
+        Meteor.call("createGroup", Meteor.user()._id, selector, cli.cmdReturn);
       }else{
-        callback();
+        cli.newCursor();
       }
     }
 
 
 }
 
-CLMR_CMDS["_remove"] = function(args, callback){
+CLMR_CMDS["_remove"] = function(args,  cli){
 
   var i = args.indexOf("-p");
   var p;
@@ -440,24 +503,24 @@ CLMR_CMDS["_remove"] = function(args, callback){
   }
 
   if(typeof(p) != "undefined" && typeof(t) != "undefined"){
-    Meteor.call("removePreset", Meteor.user()._id, {type: t, name: p},cmdReturn);
+    Meteor.call("removePreset", Meteor.user()._id, {type: t, name: p}, cli.cmdReturn);
   }else{
-    callback();
+    cli.newCursor();
   }
 
 
 }
 
-CLMR_CMDS["_lcmds"] = function(args, callback){
+CLMR_CMDS["_lcmds"] = function(args,  cli){
 
   for(var i in CLMR_CMDS){
-    println(i);
+    cli.println(i);
   }
 
-  callback();
+  cli.newCursor();
 }
 
-CLMR_CMDS["_lpresets"] = function(args, callback){
+CLMR_CMDS["_lpresets"] = function(args,  cli){
 
   var i = args.indexOf("-t");
   var t;
@@ -467,19 +530,19 @@ CLMR_CMDS["_lpresets"] = function(args, callback){
     t = args[i];
     args.splice(i,1);
   }else{
-    t = cli_mode;
+    t = cli.cli_mode;
   }
 
   Presets.find({type: t}).forEach(function(r){
 
-    println(r.name);
+    cli.println(r.name);
   });
 
-  callback();
+  cli.newCursor();
 
 }
 
-CLMR_CMDS["_loptions"] = function(args, callback){
+CLMR_CMDS["_loptions"] = function(args,  cli){
 
   var i = args.indexOf("-t");
   var t;
@@ -489,7 +552,7 @@ CLMR_CMDS["_loptions"] = function(args, callback){
     t = args[i];
     args.splice(i,1);
   }else{
-    t = cli_mode;
+    t = cli.cli_mode;
   }
 
   for(var o in currentOptions[t]){
@@ -497,46 +560,46 @@ CLMR_CMDS["_loptions"] = function(args, callback){
   }
 
 
-  callback();
+  cli.newCursor();
 
 }
 
-CLMR_CMDS["_q"] = function(args, callback){ //need to think about what these commands can usefully do
-    cli_mode = "clmr";
-    callback();
+CLMR_CMDS["_q"] = function(args,  cli){ //need to think about what these commands can usefully do
+    cli.cli_mode = "clmr";
+    cli.newCursor();
 }
 
-CLMR_CMDS["_kill"] = function(args, callback){ 
+CLMR_CMDS["_kill"] = function(args,  cli){ 
 
-  Meteor.call("killThread", Meteor.user()._id, cliThread);
-  cliThread = "";
-  callback();
+  Meteor.call("killThread", Meteor.user()._id, cli.thread);
+  cli.thread = "";
+  cli.newCursor();
 
 }
 
-CLMR_CMDS["_killall"] = function(args, callback){
+CLMR_CMDS["_killall"] = function(args,  cli){
 
-  cliThread = "";
+  cli.thread = "";
   Meteor.call("killThreads", Meteor.user()._id);
-  callback();
+  cli.newCursor();
 
 }
 
-CLMR_CMDS["_thread"] = function(args, callback){
+CLMR_CMDS["_thread"] = function(args,  cli){
 
   var r = Threads.find({},{sort: {thread: 1}}).fetch();
-  sus_list = [];
+  cli.sus_list = [];
   for(var i in r){
-    sus_list.push(r[i].thread);
+    cli.sus_list.push(r[i].thread);
   }
 
-  if(sus_list.length > 0){
-    sus_mode = "thread";
-    sus_idx = sus_list.indexOf(cliThread);
-    println(sus_list[sus_idx]);
+  if(cli.sus_list.length > 0){
+    cli.sus_mode = "thread";
+    cli.sus_idx = cli.sus_list.indexOf(cli.thread);
+    cli.println(cli.sus_list[cli.sus_idx]);
   }else{
-    println("there are no threads ...");
-    callback();
+    cli.println("there are no threads ...");
+    cli.newCursor();
   }
 }
 
@@ -544,20 +607,20 @@ CLMR_CMDS["_thread"] = function(args, callback){
 
 
 
-CLMR_CMDS["_c"] = function(args, callback){
+CLMR_CMDS["_c"] = function(args,  cli){
 
-    if(cli_mode == "chat"){
-      msgStream.emit('message', {type: 'chatClear', 'value':  "", thread: cliThread});
+    if(cli.cli_mode == "chat"){
+      msgStream.emit('message', {type: 'chatClear', 'value':  "", thread: cli.thread});
     }
 
-    callback();
+    cli.newCursor();
 }
 
-CLMR_CMDS["_i"] = function(args, callback){
+CLMR_CMDS["_i"] = function(args,  cli){
     //instant change
-    if(cli_mode == "words" || cli_mode == "numbers"){
-      var options = parseOptions(args , cli_mode, callback);
-      msgStream.emit('message', {type: cli_mode + 'Change', 'value': options, thread: cliThread});
+    if(cli.cli_mode == "words" || cli.cli_mode == "numbers"){
+      var options = parseOptions(args , cli.cli_mode, callback);
+      msgStream.emit('message', {type: cli.cli_mode + 'Change', 'value': options, thread: cli.thread});
     }
     
 }
@@ -570,13 +633,13 @@ CLMR_CMDS["_i"] = function(args, callback){
 CLMR_CMDS["_r"] = function(args, callback){
     //ramp change,
     //change all players simultaneously over time
-    callback();
+    cli.newCursor();
 }
 
 CLMR_CMDS["_d"] = function(args, callback){
     //ramp change
     //change all players after a delay
-    callback();
+    cli.newCursor();
 }
 
 */
@@ -584,54 +647,53 @@ CLMR_CMDS["_d"] = function(args, callback){
 
 
 
-function permThread(cmd, args, send, callback){
+function permThread(cmd, args, send,  cli){
 
   var selector = parseFilters(args);
-  if(selector)cliThread = generateTempId(5); //create a new thread as it's a new selection
+  if(selector)cli.thread = generateTempId(5); //create a new thread as it's a new selection
   var options = parseOptions(args, cmd);
 
   if(selector){
-    selector.thread = cliThread;
-    selector.mode = cli_mode;
+    selector.thread = cli.thread;
+    selector.mode = cli.cli_mode;
 
     Meteor.call("addThreadToPlayers", Meteor.user()._id, selector,
       function(e, r){
   //only make the call once the thread has been added
         if(!e){
 
-          send(options, cliThread);
-          println(r);
+          send(options, cli.thread);
+          cli.println(r);
 
         }else{
-          println(e.reason);
+          cli.println(e.reason);
         }
-        newCursor();
+        cli.newCursor();
       }
     );
   }else{
 
-    send(options, cliThread);
+    send(options, cli.thread);
 
     //TO DO add an extra option for reset here ... perhaps just the same as instant ?? 
-    callback();
+    cli.newCursor();
   }
 }
 
 
-function tempThread(cmd, args, send, callback){
+function tempThread(cmd, args, send,  cli){
 
 
-  Meteor.call("killThread" ,Meteor.user()._id, cliTempThread, function(e,r){
+  Meteor.call("killThread" ,Meteor.user()._id, cli.temp_thread, function(e,r){
 
-      cliTempThread = "";
+      cli.temp_thread = "";
 
       var selector = parseFilters(args);
-      cliTempThread = generateTempId(5); //create a new thread as it's a new selection
-      var options = parseOptions(args, cli_mode);
-      console.log(options);
+      cli.temp_thread = generateTempId(5); //create a new thread as it's a new selection
+      var options = parseOptions(args, cli.cli_mode);
 
       if(selector){
-        selector.thread = cliTempThread;
+        selector.thread = cli.temp_thread;
         selector.mode = "cmd";
 
         Meteor.call("addThreadToPlayers", Meteor.user()._id, selector,
@@ -639,18 +701,18 @@ function tempThread(cmd, args, send, callback){
       //only make the call once the thread has been added
             if(!e){
 
-              send(options, cliTempThread);
-              println(r);
+              send(options, cli.temp_thread);
+              cli.println(r);
 
             }else{
-              println(e.reason);
+              cli.println(e.reason);
             }
-            newCursor();
+            cli.newCursor();
           }
         );
       }else{
-        send(options, cliThread); //send on the regular thread
-        callback();
+        send(options, cli.thread); //send on the regular thread
+        cli.newCursor();
       }
 
   });
@@ -722,7 +784,7 @@ function parseOptions(args, type, callback){
     args.splice(i,1);
     
   }else{
-    if(typeof(callback) != "undefined")callback();
+    if(typeof(callback) != "undefined")cli.newCursor();
   }
   
   for(var i in options){
@@ -773,7 +835,7 @@ function parseFilters(args){
           break;
           case "cthread":
             filter.mode = "thread";
-            filter.thread = cliThread;
+            filter.thread = cli.thread;
           break;
 
           default:

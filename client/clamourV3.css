@@ -228,6 +228,6 @@ input[type='checkbox']:checked {
 
 }
 
-#cmdText{
+.cmdText{
     background: #000;
 }
