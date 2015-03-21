@@ -9,7 +9,8 @@ var sus_idx;
 
 var comIdx = 0;
 var prevComms = [];
-var clis = [];
+var clis = {};
+var cli_idx = 0; 
 
 var currentOptions = {};
 
@@ -17,8 +18,6 @@ var currentOptions = {};
 var pwtOptions = {};
 var gpnOptions = {};
 
-
-Session.set("CLIS", []);
 
 UI.registerHelper('isSu', function(){ return Meteor.user().profile.role == 'admin';});
 UI.registerHelper('isSuLogin', function(){ return Session.get('isAdmin')});
@@ -59,10 +58,9 @@ Template.su.created = function(){
 
   Meteor.subscribe("Threads");
 
-  var tcli = new CLI(0, "clmr");
+  var tcli = new CLI(cli_idx, "clmr");
 
-  clis = Session.get("CLIS");
-  clis.push(tcli);
+  clis[cli_idx] = tcli;
   var idxs = [];
   for(var  i in clis){
     idxs.push(clis[i].idx);
@@ -155,18 +153,21 @@ function CLI(idx, mode, thread){
   this.newCursor = function(isNewLine){
 
     this.cursor_prefix = this.cli_mode;
+    var id_str = "#cmdText_" + this.idx;
     if(typeof(this.thread )!= "undefined" && this.thread.length > 0)this.cursor_prefix += "_" + this.thread;
     this.cursor_prefix += ">"
     if(typeof(isNewLine) == "undefined" || isNewLine){
-      console.log(this);
       this.println(this.cursor_prefix);
 
     }else{
-      var id_str = "#cmdText_" + this.idx;
+
       $(id_str).val(this.cursor_prefix);
     }
 
     this.com_idx = prevComms.length;
+
+    var psconsole = $(id_str);
+    psconsole.scrollTop(psconsole.prop('scrollHeight'));
 
   } 
 
@@ -175,7 +176,7 @@ function CLI(idx, mode, thread){
     if(error){
       this.println(error.reason);
     }else if(result){
-      this.println(result)
+      this.println(result);
     }
 
     this.newCursor();
@@ -238,7 +239,7 @@ function CLI(idx, mode, thread){
 
       if(prevComms.length > 0){
         this.com_idx = Math.max(0, this.com_idx - 1);
-        replaceln(this.cursor_prefix + prevComms[this.com_idx]);
+        this.replaceln(this.cursor_prefix + prevComms[this.com_idx]);
       }
       return false;
     }
@@ -315,14 +316,16 @@ Template.su_cmd.events({
 
   'keydown .cmdText':function(e)
   {
-    
-    //will need to get id in a bit
-    return clis[0].keydown(e);
+    var id_str = e.currentTarget.id;
+    var id = parseInt(id_str.substring(id_str.lastIndexOf("_") + 1));
+
+    return clis[id].keydown(e);
   },
 
   'keyup .cmdText':function(e){
-
-     return clis[0].keyup(e);
+     var id_str = e.currentTarget.id;
+     var id = parseInt(id_str.substring(id_str.lastIndexOf("_") + 1));
+     return clis[id].keyup(e);
   }
 
 
@@ -357,6 +360,40 @@ evaluateCommand = function(cmd,  cli){
   }
 
 }
+
+CLMR_CMDS["_new"] = function(args, cli){
+
+  cli_idx += 1;
+  var tcli = new CLI(cli_idx, "clmr");
+
+  clis[cli_idx] = tcli;
+
+  var idxs = [];
+
+  for(var  i in clis){
+    idxs.push(clis[i].idx);
+  }
+
+  Session.set("CLI_IDXS", idxs);
+
+  cli.newCursor();
+
+}
+
+CLMR_CMDS["_exit"] = function(args, cli){
+
+  if(clis.length < 2)return;
+
+  delete clis[cli.idx];
+  var idxs = [];
+
+  for(var  i in clis){
+    idxs.push(clis[i].idx);
+  }
+
+  Session.set("CLI_IDXS", idxs);
+}
+
 
 
 CLMR_CMDS["_chat"] = function(args,  cli){
@@ -458,13 +495,13 @@ CLMR_CMDS["_group"] = function(args,  cli){
       var s_args = {};
       s_args.orig = args[1];
       s_args.numGps = parseInt(args[2]);
-      Meteor.call("createSubGroups", Meteor.user()._id, s_args, cli.cmdReturn);
+      Meteor.call("createSubGroups", Meteor.user()._id, s_args, function(e,r){cli.cmdReturn(e,r)});
 
     }else if(args[0] == "-r"){
       if(typeof(args[1]) == "undefined"){
-        Meteor.call("removeGroups", Meteor.user()._id, cli.cmdReturn);
+        Meteor.call("removeGroups", Meteor.user()._id, function(e,r){cli.cmdReturn(e,r)});
       }else{
-        Meteor.call("removeGroups", Meteor.user()._id, args[1], cli.cmdReturn);
+        Meteor.call("removeGroups", Meteor.user()._id, args[1], function(e,r){cli.cmdReturn(e,r)});
       }
     }else{
 
@@ -474,7 +511,7 @@ CLMR_CMDS["_group"] = function(args,  cli){
       }
 
       if(selector && selector.group){
-        Meteor.call("createGroup", Meteor.user()._id, selector, cli.cmdReturn);
+        Meteor.call("createGroup", Meteor.user()._id, selector, function(e,r){cli.cmdReturn(e,r)});
       }else{
         cli.newCursor();
       }
@@ -503,7 +540,7 @@ CLMR_CMDS["_remove"] = function(args,  cli){
   }
 
   if(typeof(p) != "undefined" && typeof(t) != "undefined"){
-    Meteor.call("removePreset", Meteor.user()._id, {type: t, name: p}, cli.cmdReturn);
+    Meteor.call("removePreset", Meteor.user()._id, {type: t, name: p}, function(e,r){cli.cmdReturn(e,r)});
   }else{
     cli.newCursor();
   }
@@ -556,7 +593,7 @@ CLMR_CMDS["_loptions"] = function(args,  cli){
   }
 
   for(var o in currentOptions[t]){
-    println(o + ": " + currentOptions[t][o]);
+    cli.println(o + ": " + currentOptions[t][o]);
   }
 
 
@@ -619,10 +656,11 @@ CLMR_CMDS["_c"] = function(args,  cli){
 CLMR_CMDS["_i"] = function(args,  cli){
     //instant change
     if(cli.cli_mode == "words" || cli.cli_mode == "numbers"){
-      var options = parseOptions(args , cli.cli_mode, callback);
+      var options = parseOptions(args , cli.cli_mode, cli);
       msgStream.emit('message', {type: cli.cli_mode + 'Change', 'value': options, thread: cli.thread});
     }
-    
+
+    cli.newCursor();
 }
 
 /*-----------------------------------TO DO-----------------------------------------*/
@@ -650,8 +688,8 @@ CLMR_CMDS["_d"] = function(args, callback){
 function permThread(cmd, args, send,  cli){
 
   var selector = parseFilters(args);
-  if(selector)cli.thread = generateTempId(5); //create a new thread as it's a new selection
-  var options = parseOptions(args, cmd);
+  if(selector)cli.thread = generateTempId(5); 
+  var options = parseOptions(args, cmd, cli);
 
   if(selector){
     selector.thread = cli.thread;
@@ -659,7 +697,7 @@ function permThread(cmd, args, send,  cli){
 
     Meteor.call("addThreadToPlayers", Meteor.user()._id, selector,
       function(e, r){
-  //only make the call once the thread has been added
+  //only make the call once the thread has been added,
         if(!e){
 
           send(options, cli.thread);
@@ -690,7 +728,7 @@ function tempThread(cmd, args, send,  cli){
 
       var selector = parseFilters(args);
       cli.temp_thread = generateTempId(5); //create a new thread as it's a new selection
-      var options = parseOptions(args, cli.cli_mode);
+      var options = parseOptions(args, cli.cli_mode, cli);
 
       if(selector){
         selector.thread = cli.temp_thread;
@@ -723,7 +761,7 @@ function tempThread(cmd, args, send,  cli){
 
 
 
-function parseOptions(args, type, callback){
+function parseOptions(args, type, cli){
 
   var options = {}; 
 
@@ -780,11 +818,11 @@ function parseOptions(args, type, callback){
 
   if(i > -1){
     args.splice(i,1);
-    Meteor.call("createPreset", Meteor.user()._id, {type: type, name: args[i], options: options},cmdReturn);
+    Meteor.call("createPreset", Meteor.user()._id, {type: type, name: args[i], options: options},function(e,r){cli.cmdReturn(e,r)});
     args.splice(i,1);
     
   }else{
-    if(typeof(callback) != "undefined")cli.newCursor();
+    //cli.newCursor();
   }
   
   for(var i in options){
@@ -860,6 +898,7 @@ function parseFilters(args){
       
       args.splice(i,1);
       selector.group = args[i];
+      args.splice(i,1);
 
     }else if(UserGroups.findOne({name: args[i]})){
 

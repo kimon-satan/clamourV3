@@ -303,6 +303,7 @@ Meteor.methods({
 
 				UserData.update({groups: {$in: [args]}},{$pull: {groups: args}}, {multi: true});
 				UserGroups.remove({name: args});
+				return "removed group " + args;
 
 			}
 		}

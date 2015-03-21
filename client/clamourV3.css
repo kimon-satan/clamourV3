@@ -230,4 +230,7 @@ input[type='checkbox']:checked {
 
 .cmdText{
     background: #000;
+    height:  300px;
+    max-height: 300px; 
+
 }
