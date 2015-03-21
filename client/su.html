@@ -18,15 +18,10 @@
 
 	<h1>Clamour Admin</h1>
 
-	<div class="col-md-6 scrollable">
+	<div class="col-md-6">
 
 		{{>su_cmd}}
 
-		{{>su_onOff}}
-
-		{{>su_offTransition}}
-
-		<br/><br/><br/><br/><br/>
 
 	</div>
 
@@ -42,6 +37,21 @@
 
 	</div>
 
+
+</template>
+
+
+<template name = "su_cmd">
+
+
+	<div class="row">
+		<form role="form">
+			<textarea id="cmdText" rows="50" cols="70">
+
+			</textarea>
+
+		</form>
+	</div>
 
 </template>
 
@@ -177,166 +187,9 @@
 
 
 
-<template name = "su_cmd">
-			<!-- ....................... chat ................... -->
-
-		<div class="panel panel-default">
-			<div class="panel-body">
-				<h2>CLI</h2>
-
-				<div class="row">
-					<form role="form">
-						<textarea id="cmdText" rows="20" cols="50">
-
-						</textarea>
-
-					</form>
-				</div>
-
-			</div>
-		</div>
-</template>
 
 
-<template name= "su_onOff">
-	<!-- ....................... on offs ................... -->
-	<div class="panel panel-default">
-		<div class="panel-body">
 
-			<h2>onOff</h2>
-			<div>
-				<a href="#" id="onOffInit" class="btn btn-sm btn-warning tbSpacer">init</a>
-				<a href="#" id="addOn" class="btn btn-sm btn-success tbSpacer">new on</a>
-				<a href="#" id="addOff" class="btn btn-sm btn-danger tbSpacer">new off</a>
-			</div>
-
-			<span class="dropdown lrSpacer">
-				<label>voice selector: </label>
-			  <button class="btn btn-default dropdown-toggle" type="button" id="voiceSelector" data-toggle="dropdown">
-			   	{{currentVoice}}
-			    <span class="caret"></span>
-			  </button>
-			  <ul class="dropdown-menu" role="menu" aria-labelledby="voiceSelector">
-			    
-			  	{{#each voices}}
-			    <li><a role="menuitem" class="voiceItem" href="#" id="{{this}}">{{this}}</a></li>
-			    {{/each}}
-			  </ul>
-
-			  <a href="#" id="randVoices_oo" class="btn btn-sm btn-default tbSpacer">randomVoices</a>
-
-			</span>
-
-			<div>
-				<label for="oo_Vvolume">Voice Vol: </label>
-				<input id="oo_Vvolume" class="numbersInput" type="number" min="0.01" max="1.0" value="0.25" step="0.01">
-				<label for="oo_Svolume">Signal Vol: </label>
-				<input id="oo_Svolume" class="numbersInput" type="number" min="0.01" max="0.25" value="0.05" step="0.005">
-				<label for="oo_pan">Pan: </label>
-				<input id="oo_pan" class="numbersInput" type="number" min="-0.75" max="0.75" value="0.0" step="0.05">
-				<label for="oo_splay">Splay: </label>
-				<input id="oo_splay" class="numbersInput" type="number" min="0.0" max="0.25" value="0.0" step="0.05">
-			</div>
-
-			<div class="tbSpacer">
-				<span class="dropdown lrSpacer">
-					<label>synth selector: </label>
-				  <button class="btn btn-default dropdown-toggle" type="button" id="synthSelector" data-toggle="dropdown">
-				   	{{currentSynth}}
-				    <span class="caret"></span>
-				  </button>
-				  <ul class="dropdown-menu" role="menu" aria-labelledby="synthSelector">
-				    
-				  	{{#each synths}}
-				    <li><a role="menuitem" class="synthItem" href="#" id="{{this}}">{{this}}</a></li>
-				    {{/each}}
-
-				  </ul>
-				</span>
-			</div>
-
-			{{#if isSynth 'playWithTone'}}
-				{{>su_pwtCtrls}}
-			{{/if}}
-
-			{{#if isSynth 'granPulseNoise'}}
-				{{>su_gpnCtrls}}
-			{{/if}}
-	
-
-
-		</div>
-	</div>
-</template>
-
-<template name="su_pwtCtrls">
-	<div class= "tbSpacer">
-		<label for="oo_minF">Min Freq: </label>
-		<input id="oo_minF" class="numbersInput" type="number" min="32" max="108" value="32" step="1">
-		<label for="oo_fRng">Freq Range: </label>
-		<input id="oo_fRng" class="numbersInput" type="number" min="0" max="60" value="12" step="1">
-	</div>
-
-	<div class= "tbSpacer">
-		<label for="oo_noiseFreq">Noise Freq: </label>
-		<input id="oo_noiseFreq" class="numbersInput" type="number" min="5" max="50" value="20.0" step="1">
-		<label for="oo_nFreqV">Noise Freq Variance: </label>
-		<input id="oo_nFreqV" class="numbersInput" type="number" min="0" max="1.0" value="0.0" step="0.05">
-	</div>
-</template>
-
-<template name="su_gpnCtrls">
-
-	<div class= "tbSpacer">
-		<label for="oo_trigRate">trigRate: </label>
-		<input id="oo_trigRate" class="numbersInput" type="number" min="5" max="40" value="10.0" step="1">
-		<label for="oo_envDur">envDur: </label>
-		<input id="oo_envDur" class="numbersInput" type="number" min="0.25" max="15" value="1" step="0.25">
-		<label for="oo_endPosR">endPosR: </label>
-		<input id="oo_endPosR" class="numbersInput" type="number" min="0.5" max="0.8" value="0.8" step="0.05">
-		<label for="oo_variance">variance: </label>
-		<input id="oo_variance" class="numbersInput" type="number" min="0.0" max="0.5" value="0.0" step="0.05">
-	</div>
-
-</template>
-
-<template name= "su_offTransition">
-
-	<div class="panel panel-default">
-		<div class="panel-body">
-
-			<h2>Off transition</h2>
-
-			<a href="#" id="offTInit" class="btn btn-sm btn-warning tbSpacer">init</a>
-			<span class="dropdown lrSpacer">
-				<label>voice selector: </label>
-			  <button class="btn btn-default dropdown-toggle" type="button" id="voiceSelector" data-toggle="dropdown">
-			   	{{currentVoice}}
-			    <span class="caret"></span>
-			  </button>
-			  <ul class="dropdown-menu" role="menu" aria-labelledby="voiceSelector">
-			    
-			  	{{#each voices}}
-			    <li><a role="menuitem" class="voiceItem" href="#" id="{{this}}">{{this}}</a></li>
-			    {{/each}}
-			  </ul>
-
-
-			</span>
-
-			<div>
-				<label for="ot_volume">Vol: </label>
-				<input id="ot_volume" class="numbersInput" type="number" min="0.01" max="1.0" value="0.25" step="0.01">
-				<label for="ot_pan">Pan: </label>
-				<input id="ot_pan" class="numbersInput" type="number" min="-0.75" max="0.75" value="0.0" step="0.05">
-				<label for="ot_splay">Splay: </label>
-				<input id="ot_splay" class="numbersInput" type="number" min="0.0" max="0.25" value="0.0" step="0.05">
-			</div>
-
-		</div>
-	</div>
-
-</template>
 
 
 

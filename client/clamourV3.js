@@ -346,15 +346,25 @@ Template.onOff.events({
     }
     Session.set('onOffButtons', oo);
 
+    if(onoffOptions.killswitch){
+       Meteor.call('killSynths');
+       msgStream.emit('userMessage', {type: 'killall', 'value': {}});
+    }
+
     window.setTimeout(function(){
 
       oo.isOffButton = false;
+
+      if(onoffOptions.killswitch){
+        oo.isOnButton = false;
+        oo.isOnActive = false;
+        Session.set("screenMode", 'blank');
+      }
+
       UserData.update(Meteor.user()._id, {$set: {off: false, on: oo.isOnButton}});
       Session.set('onOffButtons', oo);
 
     },300);
-
-
 
 
     Meteor.call('onOffPing', soundOptions);
@@ -367,47 +377,7 @@ Template.onOff.events({
 
 });
 
-/*--------------------------------------------------------------------------------------*/
 
-Template.offTransition.events({
-
-  'touchstart #offBox, click #offBox' : function(e){
-
-    var fstring = 'fadeInOut 0.3s forwards'
-   $('#offBox').css('-webkit-animation', fstring ); 
-   $('#offBox').css('animation', fstring); 
-
-    var soundOptions = {
-
-      msg: 'off',
-      voice: Session.get('offTVoice'),
-      pan: offTOptions.pan + parseFloat(offTOptions.splay * panOffset),
-      volume: offTOptions.vol
-
-    };
-
-    Meteor.call('onOffPing', soundOptions);
-    Meteor.call('killSynths');
-
-    msgStream.emit('userMessage', {type: 'offTransition', 'value': {}});
-
-    window.setTimeout(function(){
-      Session.set('screenMode', "onOff");
-      var oo = Session.get('onOffButtons');
-        oo.isOffButton = false;
-        oo.isOnButton = false;
-        oo.isOnActive = false;
-      Session.set('onOffButtons', oo);
-      UserData.update(Meteor.user()._id, {$set: {view: Session.get('screenMode')}});
-      UserData.update(Meteor.user()._id, {$set: {off: false, on: false}});
-    },300);
-    
-    e.preventDefault();
-
-  }
-});
-
-Template.offTransition.currentVoice = function(){return Session.get('offTVoice');}
 
 
 /*-------------------------------------RECIEVERS-------------------------------------------*/
@@ -451,16 +421,9 @@ msgStream.on('userMessage', function(message){
 
   }
 
-  if(message.type == 'offTransition'){
-      Session.set('screenMode', "onOff");
-      var oo = Session.get('onOffButtons');
-        oo.isOffButton = false;
-        oo.isOnButton = false;
-        oo.isOnActive = false;
-      Session.set('onOffButtons', oo);
-      UserData.update(Meteor.user()._id, {$set: {off: false, on: false}});
+  if(message.type == 'killall'){
+      Session.set('screenMode', "blank");
       UserData.update(Meteor.user()._id, {$set: {view: Session.get('screenMode')}});
-
   }
 
 });
@@ -504,13 +467,13 @@ msgStream.on('message', function(message){
   if(message.type == 'onoffChange'){
 
     parseOptions(message.value, onoffOptions);
-    console.log(onoffOptions);
-    console.log(message.value);
 
   }
 
   if(message.type == 'addOn'){
 
+    console.log(message.value);
+    parseOptions(message.value, onoffOptions);
 
     var oo = Session.get('onOffButtons');
 
@@ -533,6 +496,8 @@ msgStream.on('message', function(message){
   }
 
   if(message.type == 'addOff'){
+
+    parseOptions(message.value, onoffOptions);
 
     var oo = Session.get('onOffButtons');
     if(!oo.isOffButton){
@@ -569,12 +534,7 @@ msgStream.on('message', function(message){
     Session.set("chatText", [""]);
   }
 
-  if(message.type == 'offTransition'){
-      Session.set("screenMode", "offTransition");
-      UserData.update(Meteor.user()._id, {$set: {view: Session.get('screenMode')}});
-      offTOptions = message.value;
-      Session.set("offTVoice", message.value.voice);
-  }
+
 
   
 

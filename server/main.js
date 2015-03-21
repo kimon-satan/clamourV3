@@ -76,7 +76,8 @@ Meteor.startup(function(){
 		    envdur: 1.0,
 		    endpos: 0.8,
 		    splay: 0,
-		    voice: voices[0]
+		    voice: voices[0],
+		    killswitch: false
 		  }
 
 		 Presets.insert({type: "onoff", name: "df", options: p});

@@ -6,15 +6,15 @@ var cursor_prefix;
 var sus_mode;
 var sus_list;
 var sus_idx;
+
+var comIdx = 0;
+var prevComms = [];
+
 var currentOptions = {};
 
 var numPlayers;
 var cliThread, cliTempThread;
-var isAllPlayers;
-var isLockOn;
-var isRandVoice_Num = false;
-var isRandVoice_oo = false;
-var isRandVoice_wds = false;
+
 var pwtOptions = {};
 var gpnOptions = {};
 
@@ -47,10 +47,6 @@ Template.helloSu.events({
 
 Template.su.created = function(){
 
-  numPlayers = 1;
-  isAllPlayers = false;
-  isLockOn = false;
-
   Meteor.subscribe("UserData", Meteor.user()._id);
   Meteor.subscribe("AllPlayers", Meteor.user()._id);
   Meteor.subscribe("UserGroups", Meteor.user()._id);
@@ -65,14 +61,6 @@ Template.su.created = function(){
   Meteor.subscribe("Threads");
 
   Session.set("currentMode", "none");
-
-
-  Session.set("offTVoice", voices[0]);
-  Session.set("onOffVoice", voices[0]);
-  Session.set('currentSynth', synths[0]);
-
-
-
 
 
 }
@@ -155,8 +143,7 @@ Template.su_cmd.events({
   'keydown #cmdText':function(e)
   {
     
-    if(sus_mode == "thread"){
-
+    if(sus_mode == "thread" || e.keyCode == 38 || e.keyCode == 40){
       return false;
     }
 
@@ -177,6 +164,7 @@ Template.su_cmd.events({
   },
 
   'keyup #cmdText':function(e){
+
         
       if(sus_mode == "thread"){ //might be replaced with something more general purpose later
 
@@ -195,6 +183,22 @@ Template.su_cmd.events({
           sus_mode = undefined;
         }
         return false;
+
+      }else if(e.keyCode == 40){
+
+        if(prevComms.length > 0){
+          comIdx = Math.min(comIdx + 1, prevComms.length - 1);
+          replaceln(cursor_prefix + prevComms[comIdx]);
+        }
+        return false;
+      }
+      else if(e.keyCode == 38){
+
+        if(prevComms.length > 0){
+          comIdx = Math.max(0,comIdx - 1);
+          replaceln(cursor_prefix + prevComms[comIdx]);
+        }
+        return false;
       }
 
       var str = $('#cmdText').val();    
@@ -209,10 +213,11 @@ Template.su_cmd.events({
         }else{
           msgStream.emit('message', { type: 'chatUpdate', value:  cmd, thread: cliThread});
         }
+
       }
       else if(e.keyCode == 13)
       {
-     
+        if(prevComms.indexOf(cmd) == -1)prevComms.push(cmd);
         cmd.replace(/\r?\n|\r/,"");
         evaluateCommand(cmd, newCursor);
      
@@ -234,6 +239,8 @@ newCursor = function(isNewLine){
   }else{
     $("#cmdText").val(cursor_prefix);
   }
+
+  comIdx = prevComms.length;
 
 }
 
@@ -276,7 +283,6 @@ evaluateCommand = function(cmd, callback){
 
 
   args = cmd.split(" ");
-  console.log(args);
   cmd = args[0];
   args = args.slice(1);
 
@@ -351,7 +357,7 @@ CLMR_CMDS["_addon"] = function(args, callback){
     //will actually need filters and an a temporary thread
       tempThread("_addon", args,
       function(options, th){
-        msgStream.emit('message', {type: 'addOn', 'value': {}, thread: th});
+        msgStream.emit('message', {type: 'addOn', 'value': options, thread: th});
       },callback);
 
   }
@@ -368,7 +374,7 @@ CLMR_CMDS["_addoff"] = function(args,callback){
     //will actually need filters and an a temporary thread
       tempThread("_addon", args,
       function(options, th){
-        msgStream.emit('message', {type: 'addOff', 'value': {}, thread: th});
+        msgStream.emit('message', {type: 'addOff', 'value': options, thread: th});
       },callback);
 
   }
@@ -614,7 +620,6 @@ function permThread(cmd, args, send, callback){
 
 function tempThread(cmd, args, send, callback){
 
-  console.log("temp thread");
 
   Meteor.call("killThread" ,Meteor.user()._id, cliTempThread, function(e,r){
 
@@ -622,7 +627,8 @@ function tempThread(cmd, args, send, callback){
 
       var selector = parseFilters(args);
       cliTempThread = generateTempId(5); //create a new thread as it's a new selection
-      var options = parseOptions(args, cmd);
+      var options = parseOptions(args, cli_mode);
+      console.log(options);
 
       if(selector){
         selector.thread = cliTempThread;
@@ -811,200 +817,6 @@ function parseFilters(args){
 }
 
 
-
-
-
-
-
-
-
-/*---------------------------------------------------- on off -------------------------------------------*/
-
-Template.su_onOff.events({
-
-  'click #onOffInit':function(e){
-
-      msgStream.emit('message', {type: 'screenChange', 'value' : 'onOff'});
-      e.preventDefault();
-  },
-
-  'click #addOn':function(e){
-
-    var onOptions = getOnOptions();
-    msgStream.emit('message', {type: 'addOn', 'value' : onOptions});
-    e.preventDefault();
-  },
-
-  'click #addOff':function(e){
-
-    var offOptions = getOffOptions();
-    msgStream.emit('message', {type: 'addOff', 'value' : offOptions});
-    e.preventDefault();
-  },
-
-  'click #randVoices_oo': function(e){
-
-    isRandVoice_oo = true;
-    $('#randVoices_oo').removeClass('btn-default');
-    $('#randVoices_oo').addClass('btn-primary');
-    var options = {isRandomVoice: isRandVoice_oo};
-    options = checkSendAll(options);
-    msgStream.emit('message', {type: 'numbersChange', 'value': options});
-
-    e.preventDefault();
-  },
-
-  'click .voiceItem':function(e){
-
-    if(isRandVoice_oo){
-        isRandVoice_oo = false;
-        $('#randVoices_oo').addClass('btn-default');
-        $('#randVoices_oo').removeClass('btn-primary');
-    }
-
-    Session.set("onOffVoice", e.currentTarget.id);
-
-    e.preventDefault();
-  },
-
-  'click .synthItem':function(e){
-
-    Session.set('currentSynth', e.currentTarget.id);
-    e.preventDefault();
-
-  }
-
-});
-
-
-UI.registerHelper('voices' , function(){
-  return voices;
-});
-
-Template.su_onOff.currentSynth = function(){
-  return Session.get('currentSynth');
-}
-
-Template.su_onOff.isSynth = function(s){
-  return (Session.get('currentSynth') == s);
-}
-
-Template.su_onOff.synths = function(){
-  return synths;
-}
-
-Template.su_onOff.currentVoice = function(){return Session.get("onOffVoice")}
-
-Template.su_pwtCtrls.created = function(){
-
-  Meteor.defer(function(){
-    
-
-    if(typeof pwtOptions.minFreq !== 'undefined')$('#oo_minF').val(pwtOptions.minFreq);
-    if(typeof pwtOptions.fRng !== 'undefined')$('#oo_fRng').val(pwtOptions.fRng);
-    if(typeof pwtOptions.noiseFreq !== 'undefined')$('#oo_noiseFreq').val(pwtOptions.noiseFreq);
-    if(typeof pwtOptions.nFreqV !== 'undefined')$('#oo_nFreqV').val(pwtOptions.nFreqV);
-
-  });
-}
-
-Template.su_pwtCtrls.destroyed = function(){
-    pwtOptions.minFreq = $('#oo_minF').val();
-    pwtOptions.fRng = $('#oo_fRng').val();
-    pwtOptions.noiseFreq = $('#oo_noiseFreq').val();
-    pwtOptions.nFreqV = $('#oo_nFreqV').val();
-}
-
-Template.su_gpnCtrls.created = function(){
-
-  Meteor.defer(function(){
-    
-
-    if(typeof gpnOptions.trigRate !== 'undefined')$('#oo_trigRate').val(gpnOptions.trigRate);
-    if(typeof gpnOptions.envDur !== 'undefined')$('#oo_envDur').val(gpnOptions.envDur);
-    if(typeof gpnOptions.endPosR !== 'undefined')$('#oo_endPosR').val(gpnOptions.endPosR);
-    if(typeof gpnOptions.variance !== 'undefined')$('#oo_variance').val(gpnOptions.variance);
-
-  });
-}
-
-Template.su_gpnCtrls.destroyed = function(){
-      gpnOptions.trigRate = $('#oo_trigRate').val();
-      gpnOptions.envDur = $('#oo_envDur').val();
-      gpnOptions.endPosR = $('#oo_endPosR').val();
-      gpnOptions.variance = $('#oo_variance').val();
-
-}
-
-
-
-function getOnOptions(){
-
-    var onOptions = {};
-    onOptions.synth = Session.get('currentSynth');
-    onOptions.isRandomVoice = isRandVoice_oo;
-    onOptions.voice = Session.get('onOffVoice');
-    onOptions.pan = $('#oo_pan').val();
-    onOptions.splay = $('#oo_splay').val();
-    onOptions.vVolume = $('#oo_Vvolume').val();
-    onOptions.sVolume = $('#oo_Svolume').val();
-
-    if(onOptions.synth == 'playWithTone'){
-      onOptions.minFreq = $('#oo_minF').val();
-      onOptions.fRng = $('#oo_fRng').val();
-      onOptions.noiseFreq = $('#oo_noiseFreq').val();
-      onOptions.nFreqV = $('#oo_nFreqV').val();
-    }else if(onOptions.synth == 'granPulseNoise'){
-      onOptions.trigRate = $('#oo_trigRate').val();
-      onOptions.envDur = $('#oo_envDur').val();
-      onOptions.endPosR = $('#oo_endPosR').val();
-      onOptions.variance = $('#oo_variance').val();
-    }
-
-
-    return onOptions;
-
-}
-
-function getOffOptions(){
-
-  var offOptions = {};
-  offOptions.isRandomVoice = isRandVoice_oo;
-  offOptions.voice = Session.get('onOffVoice');
-  offOptions.volume = $('#oo_Vvolume').val();
-  offOptions.pan = $('#oo_pan').val();
-  offOptions.splay = $('#oo_slay').val();
-
-  return offOptions;
-
-}
-
-/*--------------------------------------------------------offTransition -------------------------------------*/
-Template.su_offTransition.currentVoice = function(){return Session.get("offTVoice")}
-
-Template.su_offTransition.events({
-
-  'click #offTInit':function(e){
-
-    var options = {
-      voice: Session.get("offTVoice"),
-      vol: $('#ot_volume').val(),
-      pan: $('#ot_pan').val(),
-      splay: $('#ot_splay').val()
-    }
-
-    msgStream.emit('message', {type: 'offTransition', 'value': options});
-    e.preventDefault();
-  },
-
-  'click .voiceItem':function(e){
-
-    Session.set("offTVoice", e.currentTarget.id);
-    e.preventDefault();
-
-  }
-
-});
 
 
 
