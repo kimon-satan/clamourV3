@@ -349,8 +349,8 @@ Template.onOff.events({
     window.setTimeout(function(){
 
       oo.isOffButton = false;
+      UserData.update(Meteor.user()._id, {$set: {off: false, on: oo.isOnButton}});
       Session.set('onOffButtons', oo);
-      UserData.update(Meteor.user()._id, {$set: {off: false, on: false}});
 
     },300);
 
@@ -445,7 +445,8 @@ msgStream.on('userMessage', function(message){
       oo.isOnButton = false;
       oo.isOnActive = false;
       Session.set('onOffButtons', oo);
-      UserData.update(Meteor.user()._id, {$set: {off: false}});
+      UserData.update(Meteor.user()._id, {$set: {on: false}});
+      console.log("setting on false");
     }
 
   }
