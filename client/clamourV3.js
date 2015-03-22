@@ -2,14 +2,15 @@
 
 msgStream = new Meteor.Stream('msgStream');
 
-
-
 var buttonPressed = false;
 var panOffset = Math.random() * 2 - 1;
 
 var numbersOptions = {};
 var wordsOptions = {};
 var onoffOptions = {};
+
+var curRamp = {};
+
 
 var onOptions = {
 
@@ -22,10 +23,6 @@ var offOptions = {
     voice: 'peterUK',
 
 };
-
-var offTOptions;
-
-
 
 
 
@@ -170,12 +167,10 @@ Template.numbers.events({
     buttonPressed = true;
     var cn = Session.get('currNumber');
 
-    console.log(numbersOptions.fade);
     var fstring = 'fadeInOut ' + numbersOptions.fade + 's forwards'
    $('#numberBox').css('-webkit-animation', fstring ); 
    $('#numberBox').css('animation', fstring); 
 
- 
 
     var soundOptions = {
 
@@ -317,7 +312,6 @@ Template.onOff.events({
       soundOptions.endPosR = onoffOptions.endpos * (1 - (Math.random() * 2 - 1) * onoffOptions.variance);
     }
 
-    console.log(soundOptions);
     Meteor.call('onOffPing', soundOptions);
 
     e.preventDefault();
@@ -385,7 +379,7 @@ Template.onOff.events({
 
 function parseOptions(options_i, options_o){
 
-  for(var i in options_o){
+  for(var i in options_i){
 
     if(typeof(options_i[i]) == "string" || typeof(options_i[i]) == "number"){
         options_o[i] = isNumber(options_i[i])? parseFloat(options_i[i]) : options_i[i];
@@ -398,6 +392,8 @@ function parseOptions(options_i, options_o){
           options_o[i] = Math.random() * r + options_i[i].min;
 
         }
+    }else if(typeof(options_i[i]) == "boolean"){
+      options_o[i] = options_i[i];
     }
 
   }
@@ -416,7 +412,6 @@ msgStream.on('userMessage', function(message){
       oo.isOnActive = false;
       Session.set('onOffButtons', oo);
       UserData.update(Meteor.user()._id, {$set: {on: false}});
-      console.log("setting on false");
     }
 
   }
@@ -439,12 +434,19 @@ msgStream.on('message', function(message){
 
   if(message.type == 'numbersChange'){
 
+    if(typeof(message.value["time"]) != "undefined"){
+      ramp(message.value, numbersOptions); //this removes any managed options
+    }
+    
     parseOptions(message.value, numbersOptions);
+    
     if(message.value.reset == true){
       numbersReset();
     }
 
   }
+
+
 
   if(message.type == 'wordsChange'){
 
@@ -472,7 +474,6 @@ msgStream.on('message', function(message){
 
   if(message.type == 'addOn'){
 
-    console.log(message.value);
     parseOptions(message.value, onoffOptions);
 
     var oo = Session.get('onOffButtons');
@@ -481,7 +482,6 @@ msgStream.on('message', function(message){
 
       var v = Session.get('voice');
       v.on = (onoffOptions.isRandomVoice) ? chooseRandomVoice() : onoffOptions.voice;
-      console.log(v.on);
       Session.set('voice', v);
 
       oo.isOnButton = true;
@@ -561,6 +561,59 @@ function numbersReset(){
 }
 
 
+function ramp(args, liveOptions){
+
+  var o = liveOptions;
+
+
+  if(typeof(curRamp) != "undefined"){
+    clearInterval(curRamp.loop);
+    curRamp = {};
+  }
+
+  curRamp.startOptions = {};
+  curRamp.targetOptions = {};
+  curRamp.liveOptions = o;
+
+  var t = args.time;
+  delete args["time"];
+
+  for(var i in args){
+
+      if(typeof(args[i]) == "number"){
+        curRamp.startOptions[i] = parseFloat(o[i]);
+        curRamp.targetOptions[i] = parseFloat(args[i]);
+        delete args[i];
+      }
+    
+  }
+
+  curRamp.totalSteps = t * 20;
+  curRamp.cStep = 0;
+
+  curRamp.loop = window.setInterval(function(){
+    curRamp.cStep += 1;
+    var p = curRamp.cStep/curRamp.totalSteps;
+    if(p > 1){
+      clearInterval(curRamp.loop);
+      return;
+    }
+
+    for(var i in curRamp.startOptions){
+      var d = curRamp.targetOptions[i] - curRamp.startOptions[i];
+      curRamp.liveOptions[i] = curRamp.startOptions[i] + d * p;
+      curRamp.liveOptions[i];
+    }
+
+
+
+  },50);  //20 fps is enoug
+
+
+
+
+}
+
 /*---------------------------------------------------------GENERIC FUNCTIONS-----------------------------------*/
 
 function randCol(){
@@ -570,7 +623,6 @@ function randCol(){
 
 function chooseRandomVoice(){
     var v = voices[Math.floor(Math.random() * voices.length)];
-    console.log(v);
     return v;
 }
 

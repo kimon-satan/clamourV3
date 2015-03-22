@@ -16,26 +16,11 @@
 
 <template name="su">
 
-	<h1>Clamour Admin</h1>
+	<div style="margin-top: 20px; text-align:left">
 
-	<div class="col-md-6">
-
-		{{#each cli_idxs}}
-			{{>su_cmd id=this}}
-		{{/each}}
-
-
-	</div>
-
-	<div class="col-md-6 scrollable">
-
-		{{>su_synth_ctrl}}
-
-		{{>su_threads}}
-
-		{{>su_players}}
-
-		{{>su_playerTable}}
+	{{#each cli_idxs}}
+		{{>su_cmd id=this}}
+	{{/each}}
 
 	</div>
 
@@ -46,142 +31,16 @@
 <template name = "su_cmd">
 
 
-	<div class="row">
-		<form role="form">
-			<textarea class="cmdText" id="cmdText_{{id}}" rows="50" cols="70">
-
-			</textarea>
-
-		</form>
-	</div>
-
-</template>
-
-<template name="su_synth_ctrl">
-
-	<div class="panel panel-default">
-		<div class="panel-body">
-			<h2>OSC Control</h2>
-			<div>
-			<a href="#" id="killSynths" class="btn btn-sm btn-danger tbSpacer">kill synths</a>
-			<a href="#" id="startPedal" class="btn btn-sm btn-success tbSpacer">start pedal</a>
-			</div>
-		</div>
-	</div>
-</template>
-
-<template name = "su_threads">
-	<div class="panel panel-default">
-		<div class="panel-body">
-			<h2>Threads</h2>
-
-
-				
-		</div>
-
-		<h4>player groups</h4>
-		<table class="table">
-			<thead>
-			    <th>thread</th>
-			    <th>population</th>
-			 </thead>
-			 {{#each threads}}
-			 	<tr class="">
-			 		<td>{{thread}}</td>
-			 		<td></td>
-			 	</tr>
-			 {{/each}}
-		</table>
-	</div>
+	<span style="display: inline"><textarea class="cmdText" id="cmdText_{{id}}" rows="100" cols="56"></textarea></span>
 
 </template>
 
 
-<template name ="su_players">
-
-	<div class="panel panel-default">
-		<div class="panel-body">
-			<h2>Players</h2>
-
-				
-				<div>
-				<a href="#" id="resetPlayers" class="btn btn-sm btn-danger tbSpacer">logout all</a>
-				</div>
-
-				
-		</div>
-
-		<h4>player groups</h4>
-		<table class="table">
-			<thead>
-			    <th>group</th>
-			    <th>population</th>
-
-			 </thead>
-			 {{#each playerGroups}}
-			 	<tr class="">
-			 		<td>{{this.name}}</td>
-			 		<td>{{population}}</td>
-
-			 	</tr>
-			 {{/each}}
-		</table>
-			
-	
-	</div>
 
 
 
 
-</template>
 
-<template name="su_playerTable">
-
-	<div class="panel panel-default">
-		<div class="panel-body">
-
-			<h4>Players</h4>
-			<div class="scrollable">
-			<table class="table table-striped">
-			  <thead>
-			    <th>id</th>
-			    <th>view</th>
-			    {{#if checkCurrentMode 'onOff'}}
-			    <th>on</th>
-			    <th>off</th>
-			    {{/if}}
-
-	    		{{#if checkCurrentMode 'numbers'}}
-					<th>voice</th>
-				{{/if}}
-
-			  </thead>
-				{{#each selectedPlayers}}
-
-					<tr >
-			
-						<td>{{this._id}}</td>
-						<td>{{this.view}}</td>
-						<td>{{this.activeThreads}}</td>
-
-						{{#if checkCurrentMode 'onOff'}}
-							<td>{{this.on}}</td>
-							<td>{{this.off}}</td>
-						{{/if}}
-
-						{{#if checkCurrentMode 'numbers'}}
-							<td>{{this.voice}}</td>
-						{{/if}}
-
-					</tr>
-					
-				{{/each}}
-			</table>
-		</div>
-		</div>
-	</div>
-
-</template>
 
 
 

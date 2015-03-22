@@ -217,10 +217,12 @@ Meteor.methods({
 
 		if(checkAdmin(userId)){
 			
-			Threads.insert({thread: args.thread});
+			
 
 			var uids = selectPlayers(args);
 			var msg =  args.mode + " with " + uids.length + " players with activeThread: " + args.thread; //this message needs to change
+
+			Threads.insert({thread: args.thread, population: uids.length});
 			
 			if(typeof(args.group) == "undefined"){
 				

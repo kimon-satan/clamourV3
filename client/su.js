@@ -1,22 +1,13 @@
 
 var CLMR_CMDS = {}
 
-var cli_mode = "clmr";
-var cursor_prefix;
-var sus_mode;
-var sus_list;
-var sus_idx;
 
-var comIdx = 0;
-var prevComms = [];
-var clis = {};
-var cli_idx = 0; 
+var gPrevComms = [];
+var gClis = {};
+var gCli_idx = 0; 
 
-var currentOptions = {};
-
-
-var pwtOptions = {};
-var gpnOptions = {};
+var gCurrentOptions = {};
+var gProcs = {};
 
 
 UI.registerHelper('isSu', function(){ return Meteor.user().profile.role == 'admin';});
@@ -50,88 +41,30 @@ Template.su.created = function(){
   Meteor.subscribe("UserGroups", Meteor.user()._id);
   Meteor.subscribe("Presets",function(){
 
-    currentOptions["numbers"] = Presets.findOne({type: "numbers", name: "df"}).options;
-    currentOptions["words"] = Presets.findOne({type: "words", name: "df"}).options;
-    currentOptions["onoff"] = Presets.findOne({type: "onoff", name: "df"}).options;
+    gCurrentOptions["numbers"] = Presets.findOne({type: "numbers", name: "df"}).options;
+    gCurrentOptions["words"] = Presets.findOne({type: "words", name: "df"}).options;
+    gCurrentOptions["onoff"] = Presets.findOne({type: "onoff", name: "df"}).options;
 
   });
 
   Meteor.subscribe("Threads");
 
-  var tcli = new CLI(cli_idx, "clmr");
+  var tcli = new CLI(gCli_idx, "clmr");
 
-  clis[cli_idx] = tcli;
+  gClis[gCli_idx] = tcli;
   var idxs = [];
-  for(var  i in clis){
-    idxs.push(clis[i].idx);
+  for(var  i in gClis){
+    idxs.push(gClis[i].idx);
   }
 
-  Session.set("CLI_IDXS", idxs);
+  Session.set("cli_idxs", idxs);
 
 }
 
-Template.su.cli_idxs = function(){return Session.get("CLI_IDXS");}
-
-Template.su_synth_ctrl.events({
-
-  'click #killSynths':function(e){
-
-    Meteor.call("killSynths", Meteor.user()._id);
-    e.preventDefault();
-  }, 
-
-  'click #startPedal':function(e){
-
-    Meteor.call("startPedal", Meteor.user()._id);
-    e.preventDefault();
-
-  }
+Template.su.cli_idxs = function(){return Session.get("cli_idxs");}
 
 
-
-});
-
-
-Template.su_players.events({
-
-
-  'click #resetPlayers':function(e){
-
-    if(confirm("are you sure ?")){
-
-      Meteor.call("resetPlayers", Meteor.user()._id);
-
-    };
-
-    e.preventDefault();
-  }
-
-
-
-});
-
-
-
-Template.su_players.playerGroups = function(){
-  return UserGroups.find({},{sort:{index: 1}}).fetch();
-}
-
-Template.su_players.population = function(){
-  return this.members.length;
-}
-
-//Template.su_playerTable.getSelected = function(p){if(p.activeThreads.indexOf(cli.thread) > -1)return "selected"}
 UI.registerHelper('checkCurrentMode', function(m){return (Session.get("currentMode") == m)});
-
-Template.su_playerTable.selectedPlayers = function(){
-  return UserData.find({}).fetch();
-}
-
-
-
-Template.su_threads.threads = function(){
-  return Threads.find({}).fetch();
-}
 
 
 /*-----------------------------------------------CLI ----------------------------------------*/
@@ -164,7 +97,7 @@ function CLI(idx, mode, thread){
       $(id_str).val(this.cursor_prefix);
     }
 
-    this.com_idx = prevComms.length;
+    this.com_idx = gPrevComms.length;
 
     var psconsole = $(id_str);
     psconsole.scrollTop(psconsole.prop('scrollHeight'));
@@ -229,17 +162,17 @@ function CLI(idx, mode, thread){
 
     }else if(e.keyCode == 40){
 
-      if(prevComms.length > 0){
-        this.com_idx = Math.min(this.com_idx + 1, prevComms.length - 1);
-        this.replaceln(this.cursor_prefix + prevComms[this.com_idx]);
+      if(gPrevComms.length > 0){
+        this.com_idx = Math.min(this.com_idx + 1, gPrevComms.length - 1);
+        this.replaceln(this.cursor_prefix + gPrevComms[this.com_idx]);
       }
       return false;
     }
     else if(e.keyCode == 38){
 
-      if(prevComms.length > 0){
+      if(gPrevComms.length > 0){
         this.com_idx = Math.max(0, this.com_idx - 1);
-        this.replaceln(this.cursor_prefix + prevComms[this.com_idx]);
+        this.replaceln(this.cursor_prefix + gPrevComms[this.com_idx]);
       }
       return false;
     }
@@ -253,7 +186,7 @@ function CLI(idx, mode, thread){
     }
     else if(e.keyCode == 13)
     {
-      if(prevComms.indexOf(cmd) == -1)prevComms.push(cmd);
+      if(gPrevComms.indexOf(cmd) == -1)gPrevComms.push(cmd);
       cmd.replace(/\r?\n|\r/,"");
       evaluateCommand(cmd, this);
     }
@@ -304,7 +237,7 @@ Template.su_cmd.created = function(){
 
       var id_str = ctxt.$('.cmdText')[0].id;
       var id = parseInt(id_str.substring(id_str.lastIndexOf("_") + 1));
-      clis[id].newCursor(false);
+      gClis[id].newCursor(false);
 
   });
  
@@ -319,13 +252,13 @@ Template.su_cmd.events({
     var id_str = e.currentTarget.id;
     var id = parseInt(id_str.substring(id_str.lastIndexOf("_") + 1));
 
-    return clis[id].keydown(e);
+    return gClis[id].keydown(e);
   },
 
   'keyup .cmdText':function(e){
      var id_str = e.currentTarget.id;
      var id = parseInt(id_str.substring(id_str.lastIndexOf("_") + 1));
-     return clis[id].keyup(e);
+     return gClis[id].keyup(e);
   }
 
 
@@ -361,20 +294,39 @@ evaluateCommand = function(cmd,  cli){
 
 }
 
+CLMR_CMDS["_logoutPlayers"] = function(args, cli){
+
+  //ideally should do a confirmation here
+  Meteor.call("resetPlayers", Meteor.user()._id);
+  cli.thread = "";
+  Meteor.call("killThreads", Meteor.user()._id);
+  cli.newCursor();
+}
+
+CLMR_CMDS["_pedalStart"] = function(args, cli){
+  Meteor.call("startPedal", Meteor.user()._id);
+  cli.newCursor();
+}
+
+CLMR_CMDS["_killSound"]  = function(args, cli){
+  Meteor.call("killSynths", Meteor.user()._id);
+  cli.newCursor();
+}
+
 CLMR_CMDS["_new"] = function(args, cli){
 
-  cli_idx += 1;
-  var tcli = new CLI(cli_idx, "clmr");
+  gCli_idx += 1;
+  var tcli = new CLI(gCli_idx, "clmr");
 
-  clis[cli_idx] = tcli;
+  gClis[gCli_idx] = tcli;
 
   var idxs = [];
 
-  for(var  i in clis){
-    idxs.push(clis[i].idx);
+  for(var  i in gClis){
+    idxs.push(gClis[i].idx);
   }
 
-  Session.set("CLI_IDXS", idxs);
+  Session.set("cli_idxs", idxs);
 
   cli.newCursor();
 
@@ -382,16 +334,27 @@ CLMR_CMDS["_new"] = function(args, cli){
 
 CLMR_CMDS["_exit"] = function(args, cli){
 
-  if(clis.length < 2)return;
+  if(gClis.length < 2)return;
 
-  delete clis[cli.idx];
+  delete gClis[cli.idx];
   var idxs = [];
 
-  for(var  i in clis){
-    idxs.push(clis[i].idx);
+  for(var  i in gClis){
+    idxs.push(gClis[i].idx);
   }
 
-  Session.set("CLI_IDXS", idxs);
+  Session.set("cli_idxs", idxs);
+}
+
+CLMR_CMDS["_wait"] = function(args,  cli){
+
+    cli.cli_mode = "chat";
+
+    permThread(cli.cli_mode, args, 
+    function(options, th){
+      msgStream.emit('message', {type: 'screenChange', 'value' : 'wait', thread: th});
+    }, cli);
+
 }
 
 
@@ -548,6 +511,37 @@ CLMR_CMDS["_remove"] = function(args,  cli){
 
 }
 
+CLMR_CMDS["_lplayers"] = function(args, cli){
+
+  //add filters and info args later if desired
+  UserData.find({}).forEach(function(e){
+    var str = e._id.substring(0,5) + " :: " + e.view;
+    cli.println(str);
+  });
+
+  cli.newCursor();
+}
+
+CLMR_CMDS["_lthreads"] = function(args, cli){
+  
+  Threads.find({}).forEach(function(e){
+
+    var str = e.thread + " :: " + e.population;
+    if(e.thread == cli.thread)str += " *";
+    if(e.thread == cli.temp_thread)str += " -";
+    cli.println(str);
+
+  });
+
+  cli.newCursor();
+
+}
+
+CLMR_CMDS["_lgroups"] = function(args, cli){
+
+
+}
+
 CLMR_CMDS["_lcmds"] = function(args,  cli){
 
   for(var i in CLMR_CMDS){
@@ -592,8 +586,8 @@ CLMR_CMDS["_loptions"] = function(args,  cli){
     t = cli.cli_mode;
   }
 
-  for(var o in currentOptions[t]){
-    cli.println(o + ": " + currentOptions[t][o]);
+  for(var o in gCurrentOptions[t]){
+    cli.println(o + ": " + gCurrentOptions[t][o]);
   }
 
 
@@ -653,26 +647,20 @@ CLMR_CMDS["_c"] = function(args,  cli){
     cli.newCursor();
 }
 
-CLMR_CMDS["_i"] = function(args,  cli){
-    //instant change
-    if(cli.cli_mode == "words" || cli.cli_mode == "numbers"){
-      var options = parseOptions(args , cli.cli_mode, cli);
-      msgStream.emit('message', {type: cli.cli_mode + 'Change', 'value': options, thread: cli.thread});
+CLMR_CMDS["_i"] = function(args,  cli){ //should be come update as it can deal with all types of changes
+
+  tempThread("_i", args,
+    function(options, th){
+      msgStream.emit('message', {type: cli.cli_mode + 'Change', 'value': options, thread: th});
     }
 
-    cli.newCursor();
+  , cli);
+
+
 }
 
-/*-----------------------------------TO DO-----------------------------------------*/
 
 
-
-/*
-CLMR_CMDS["_r"] = function(args, callback){
-    //ramp change,
-    //change all players simultaneously over time
-    cli.newCursor();
-}
 
 CLMR_CMDS["_d"] = function(args, callback){
     //ramp change
@@ -680,7 +668,7 @@ CLMR_CMDS["_d"] = function(args, callback){
     cli.newCursor();
 }
 
-*/
+
 
 
 
@@ -766,8 +754,8 @@ function parseOptions(args, type, cli){
   var options = {}; 
 
   if(args.length == 0){ //default to previous options
-    for(var i in currentOptions[type]){
-      options[i] = currentOptions[type][i];
+    for(var i in gCurrentOptions[type]){
+      options[i] = gCurrentOptions[type][i];
     }
     return options;
   }
@@ -787,8 +775,17 @@ function parseOptions(args, type, cli){
   }
 
 
+  i = args.indexOf("-time");
 
-  var params = Object.keys(currentOptions[type]);
+  if(i > -1){
+    args.splice(i,1);
+    options["time"] = parseInt(args[i]);
+    args.splice(i,1);
+  }
+
+
+
+  var params = Object.keys(gCurrentOptions[type]);
 
   for(var x = 0; x < params.length; x++){
       i = args.indexOf("-" + params[x]);
@@ -808,6 +805,8 @@ function parseOptions(args, type, cli){
 
         }else{
           options[params[x]] = isNumber(args[i]) ? parseFloat(args[i]) : args[i];
+          if(options[params[x]] == "T")options[params[x]] = true; //handle booleans
+          if(options[params[x]] == "F")options[params[x]] = false;
         }
         
         args.splice(i,1); 
@@ -826,7 +825,7 @@ function parseOptions(args, type, cli){
   }
   
   for(var i in options){
-    currentOptions[type][i] = options[i]; //copy the changes to current options
+    gCurrentOptions[type][i] = options[i]; //copy the changes to current options
   }
 
   return options;

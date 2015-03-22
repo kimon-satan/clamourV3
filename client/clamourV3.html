@@ -5,21 +5,25 @@
 
 <body>
 
-	<div class="container text-center">
+	
 		{{#if currentUser}}
 		  {{#if isSu}}
 		  	{{>su}}
 		  {{else}}
+		  <div class="container text-center">
 		  	{{>clamour}}
+		  </div>
 		  {{/if}}
 		{{else}}
+		 <div class="container text-center">
 			{{#if isSuLogin}}
 				{{>helloSu}}
 			{{else}}
 		  		{{>hello}}
 		  	{{/if}}
+		 </div>
 		{{/if}}
-	</div>
+
 
 </body>
 
