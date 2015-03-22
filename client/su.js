@@ -148,11 +148,16 @@ function CLI(idx, mode, thread){
     }else if(e.keyCode == 75 && e.metaKey){
       $(id_str).val("");
       this.newCursor(false);
+    }else if(e.keyCode == 65 && e.metaKey){
+      newCli();
+      return false;
     }
+
 
   }
 
   this.keyup  = function(e){
+
 
     var id_str ='#cmdText' + "_" + this.idx;
 
@@ -315,6 +320,14 @@ CLMR_CMDS["_killSound"]  = function(args, cli){
 
 CLMR_CMDS["_new"] = function(args, cli){
 
+  newCli();
+
+  cli.newCursor();
+
+}
+
+function newCli(){
+
   gCli_idx += 1;
   var tcli = new CLI(gCli_idx, "clmr");
 
@@ -327,8 +340,6 @@ CLMR_CMDS["_new"] = function(args, cli){
   }
 
   Session.set("cli_idxs", idxs);
-
-  cli.newCursor();
 
 }
 
@@ -348,7 +359,7 @@ CLMR_CMDS["_exit"] = function(args, cli){
 
 CLMR_CMDS["_wait"] = function(args,  cli){
 
-    cli.cli_mode = "chat";
+    cli.cli_mode = "wait";
 
     permThread(cli.cli_mode, args, 
     function(options, th){
@@ -375,11 +386,14 @@ CLMR_CMDS["_words"] = function(args,  cli){
 
   cli.cli_mode = "words";
 
-  permThread(cli.cli_mode, args, 
-  function(options, th){
-    msgStream.emit('message', {type: 'wordsChange', 'value': options, thread: th});
-    msgStream.emit('message', {type: 'screenChange', 'value' : 'words', thread: th});
-  }, cli);
+  var cb = function(options, th){
+            msgStream.emit('message', {type: 'wordsChange', 'value': options, thread: th});
+            msgStream.emit('message', {type: 'screenChange', 'value' : 'words', thread: th});
+          };
+
+  if(!addStep(args, cb, cli)){
+    permThread(cli.cli_mode, args, cb, cli);
+  }
 
 }
 
@@ -387,11 +401,14 @@ CLMR_CMDS["_numbers"] = function(args,  cli){
 
   cli.cli_mode = "numbers";
 
-  permThread(cli.cli_mode, args, 
-  function(options, th){
+  var cb = function(options, th){
       msgStream.emit('message', {type: 'numbersChange', 'value': options, thread: th});
       msgStream.emit('message', {type: 'screenChange', 'value' : 'numbers', thread: th});
-  }, cli);
+  };
+
+  if(!addStep(args, cb, cli)){
+    permThread(cli.cli_mode, args, cb, cli);
+  }
 
 
 }
@@ -400,11 +417,14 @@ CLMR_CMDS["_onoff"] = function(args,  cli){
 
   cli.cli_mode = "onoff";
 
-  permThread(cli.cli_mode, args, 
-  function(options, th){
+  var cb =   function(options, th){
       msgStream.emit('message', {type: 'onoffChange', 'value': options, thread: th});
       msgStream.emit('message', {type: 'screenChange', 'value' : 'onOff', thread: th});
-  }, cli);
+  }
+
+  if(!addStep(args, cb, cli)){
+    permThread(cli.cli_mode, args, cb, cli);
+  }
   
 }
 
@@ -417,11 +437,10 @@ CLMR_CMDS["_addon"] = function(args,  cli){
     cli.newCursor();
   }else{
 
-    //will actually need filters and an a temporary thread
-      tempThread("_addon", args,
-      function(options, th){
-        msgStream.emit('message', {type: 'addOn', 'value': options, thread: th});
-      }, cli);
+
+    var cb =  function(options, th){msgStream.emit('message', {type: 'addOn', 'value': options, thread: th});}
+
+    if(!addStep(args, cb, cli))tempThread("_addon", args,cb, cli);
 
   }
 
@@ -435,10 +454,9 @@ CLMR_CMDS["_addoff"] = function(args, cli){
     cli.newCursor();
   }else{
     //will actually need filters and an a temporary thread
-      tempThread("_addon", args,
-      function(options, th){
-        msgStream.emit('message', {type: 'addOff', 'value': options, thread: th});
-      }, cli);
+    var cb = function(options, th){msgStream.emit('message', {type: 'addOff', 'value': options, thread: th});}
+
+    if(!addStep(args, cb, cli))tempThread("_addoff", args, cb, cli);
 
   }
 
@@ -538,6 +556,15 @@ CLMR_CMDS["_lthreads"] = function(args, cli){
 }
 
 CLMR_CMDS["_lgroups"] = function(args, cli){
+
+  UserGroups.find({}).forEach(function(e){
+
+    var str = e.name + " :: " + e.members.length;
+    cli.println(str);
+
+  });
+
+  cli.newCursor();
 
 
 }
@@ -649,27 +676,72 @@ CLMR_CMDS["_c"] = function(args,  cli){
 
 CLMR_CMDS["_i"] = function(args,  cli){ //should be come update as it can deal with all types of changes
 
-  tempThread("_i", args,
-    function(options, th){
-      msgStream.emit('message', {type: cli.cli_mode + 'Change', 'value': options, thread: th});
+  var cb = function(options, th){msgStream.emit('message', {type: cli.cli_mode + 'Change', 'value': options, thread: th});}
+
+  if(!addStep(args, cb, cli))tempThread("_i", args, cb, cli);
+
+}
+
+
+
+
+function addStep(args, callback, cli){
+
+  var i = args.indexOf("-step");
+
+  if(i < 0)return false;
+   
+  var proc = {};
+
+  args.splice(i,1);
+  var totalTime = args[i];
+  args.splice(i, 1);
+
+  proc.id = generateTempId(5);
+  var selector = parseFilters(args);
+  if(!selector)selector = {filters: [{thread: cli.thread}]}; 
+  
+  proc.players = selectPlayers(selector);
+  proc.options = parseOptions(args);
+  var interval = (totalTime/proc.players.length) * 1000;
+  proc.threads = [];
+
+  proc.loop = setInterval(function(){
+
+    cli.println(proc.players[0]);
+    var t = generateTempId(8);
+    proc.threads.push(t);
+    var p_args = {uid: proc.players[0], thread: t};
+    proc.players.splice(0,1);
+
+    Meteor.call("addThreadToPlayer", Meteor.user()._id, p_args, function(e,r){
+      callback(proc.options , r);
+    });
+    
+    var id_str = "#cmdText_" + cli.idx;
+    var psconsole = $(id_str);
+    psconsole.scrollTop(psconsole.prop('scrollHeight'));
+
+    if(proc.players.length == 0){
+      clearInterval(proc.loop);
+      //remove each of the threads
+      for(i in proc.threads){
+        Meteor.call("killThread", Meteor.user()._id, proc.threads[i]);
+      }
+      delete gProcs[proc.id];
+      cli.newCursor();
+
+
     }
 
-  , cli);
 
+  }, interval);
+
+  gProcs[proc.id] = proc;
+
+  return true;
 
 }
-
-
-
-
-CLMR_CMDS["_d"] = function(args, callback){
-    //ramp change
-    //change all players after a delay
-    cli.newCursor();
-}
-
-
-
 
 
 

@@ -248,6 +248,19 @@ Meteor.methods({
 
 	},
 
+	addThreadToPlayer:function(userId, args){
+
+		if(typeof(args) == "undefined")return false;
+
+		if(checkAdmin(userId)){
+
+			Threads.insert({thread: args.thread, population: 1});
+			UserData.update(args.uid, {$push: {activeThreads: args.thread}});
+			return args.thread;
+		}
+	},
+
+
 
 
 	createGroup:function(userId, args){
@@ -453,80 +466,7 @@ Meteor.methods({
 });
 
 
-function selectPlayers(args){
 
-	console.log("selecting players ... ");
-
-	var uids = [];
-
-	var searchObj = {};
-
-	if(typeof(args.filters) == "undefined")args.filters = [];
-
-	for(var i = 0; i < args.filters.length; i++){
-
-	var filter = args.filters[i];
-
-	switch(filter.mode){
-		case "words":
-		case "numbers": 
-		case "chat": 
-		case "onOff": 
-			searchObj.view = filter.not ? {$ne: filter.mode} : filter.mode;
-		break;
-		case "hasOn": 
-			searchObj.on = !filter.not;
-		break;
-		case "hasOff": 
-			searchObj.off = !filter.not; 
-		break;
-		case "voice":
-			searchObj.voice = filter.not ?  {$ne: filter.voice} : filter.voice; 
-		break;
-		case "thread":
-			searchObj.activeThreads = filter.not  ? {$nin: [filter.thread]} : {$in: [filter.thread]}
-		break;
-		case "group":
-			if(typeof(searchObj.groups) == "undefined"){
-				searchObj.groups = filter.not ?  {$nin: [filter.group]} : {$in: [filter.group]}
-			}else{
-
-				if(filter.not){
-					if(typeof(searchObj.groups['$nin']) == "undefined"){
-						searchObj.groups['$nin'] = [filter.group];
-					}else{
-						searchObj.groups['$nin'].push(filter.group);
-					}
-
-				}else{
-
-					if(typeof(searchObj.groups.$in) == "undefined"){
-						searchObj.groups['$in'] = [filter.group];
-					}else{
-						searchObj.groups['$in'].push(filter.group);
-					}
-				}
-			}
-		break;
-		}
-
-	}
-
-
-	UserData.find(searchObj).forEach(function(e){
-		uids.push(e._id);
-	});
-
-
-	if(typeof(args.numPlayers) != "undefined"){
-		shuffleArray(uids);
-		var numPlayers = Math.min(uids.length , args.numPlayers);
-		uids = uids.slice(0,numPlayers);
-	}
-
-
-	return uids;
-}
 
 function checkAdmin(userId){
 
@@ -541,7 +481,3 @@ function checkAdmin(userId){
 	
 }
 
-function shuffleArray(o){ //v1.0
-    for(var j, x, i = o.length; i; j = Math.floor(Math.random() * i), x = o[--i], o[i] = o[j], o[j] = x);
-    return o;
-}
