@@ -41,6 +41,7 @@ Meteor.startup(function(){
 		var p = {
 
 		    lock: false, 
+		    rule: rules[0], //none, minus, plus, mute, plus_mute
 		    start: 10,
 		    end: 0,
 		    vol: 0.2,

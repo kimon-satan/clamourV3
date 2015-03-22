@@ -12,19 +12,6 @@ var onoffOptions = {};
 var curRamp = {};
 
 
-var onOptions = {
-
-  voice: 'peterUK',
-
-};
-
-var offOptions = {
-
-    voice: 'peterUK',
-
-};
-
-
 
 Template.hello.events({
 
@@ -49,13 +36,15 @@ Template.clamour.created = function(){
     //do something
 
     numbersOptions = Presets.findOne({type: "numbers", name: "df"}).options;
+    numbersOptions.ovol = numbersOptions.vol;
+
     wordsOptions = Presets.findOne({type: "words", name: "df"}).options;
     onoffOptions = Presets.findOne({type: "onoff", name: "df"}).options;
     var v = {
 
       numbers: numbersOptions.voice,
-      on: onOptions.voice,
-      off: offOptions.voice,
+      on: onoffOptions.voice,
+      off: onoffOptions.voice,
       words: wordsOptions.voice
 
     };
@@ -93,6 +82,8 @@ Template.words.currentWord = function(){
   return Session.get("currentWord");
 }
 
+Template.words.vol = function(){return Session.get("wordsVol");}
+
 Template.words.events({
 
   'touchstart #wordsBox, click #wordsBox' :function(e){
@@ -122,7 +113,7 @@ Template.words.events({
 
     Meteor.call('numPing', soundOptions);
 
-
+    updateFontSizes();
 
     setTimeout(function(){
 
@@ -181,6 +172,15 @@ Template.numbers.events({
 
     };
 
+    if(numbersOptions.rule == "minus"){
+      numbersOptions.vol *= 0.9;
+    }else if(numbersOptions.rule == "plus"){
+      numbersOptions.vol *= 1.1;
+      numbersOptions.vol =  Math.min(numbersOptions.vol, 1.0);
+    }
+
+
+    updateFontSizes();
 
     Meteor.call('numPing', soundOptions);
 
@@ -236,14 +236,22 @@ Template.numbers.events({
 });
 
 Template.numbers.currNumber = function(){return Session.get('currNumber');}
+Template.numbers.vol = function(){return Session.get('numbersVol');}
 Template.numbers.isPause = function(){return Session.get('isPause');}
 
+function updateFontSizes(){
+    Session.set("numbersVol", Math.max(Math.min(300,1000 * numbersOptions.vol),20));
+    Session.set("wordsVol",  Math.max(Math.min(300,1000 * wordsOptions.vol),20));
+    Session.set("onoffVol",  Math.max(Math.min(300,1000 * onoffOptions.vvol),20));
+}
 
 
 /*-----------------------------------------------CHAT --------------------------------------------*/
 Template.chat.chatText = function(){return Session.get('chatText');}
 
 /*---------------------------------------------------ON OFF-----------------------------------------*/
+
+Template.onOff.vol = function(){return Session.get("onoffVol");}
 
 Template.onOff.created = function(){
 
@@ -428,6 +436,9 @@ msgStream.on('message', function(message){
   if(message.type == 'numbersReset'){
     
     parseOptions(message.value, numbersOptions);
+
+    numbersOptions.ovol = numbersOptions.vol;
+    
     numbersReset();
 
   }
@@ -439,10 +450,13 @@ msgStream.on('message', function(message){
     }
     
     parseOptions(message.value, numbersOptions);
+    if(typeof(message.value.vol) != "undefined")numbersOptions.ovol = numbersOptions.vol;
+    
     
     if(message.value.reset == true){
       numbersReset();
     }
+    updateFontSizes();
 
   }
 
@@ -450,7 +464,12 @@ msgStream.on('message', function(message){
 
   if(message.type == 'wordsChange'){
 
+    if(typeof(message.value["time"]) != "undefined"){
+      ramp(message.value, wordsOptions); //this removes any managed options
+    }
+
     parseOptions(message.value, wordsOptions);
+    updateFontSizes();
 
   }
 
@@ -468,11 +487,20 @@ msgStream.on('message', function(message){
 
   if(message.type == 'onoffChange'){
 
+    if(typeof(message.value["time"]) != "undefined"){
+      ramp(message.value, onoffOptions); //this removes any managed options
+    }
+
     parseOptions(message.value, onoffOptions);
+    updateFontSizes();
 
   }
 
   if(message.type == 'addOn'){
+
+    if(typeof(message.value["time"]) != "undefined"){
+      ramp(message.value, onoffOptions); //this removes any managed options
+    }
 
     parseOptions(message.value, onoffOptions);
 
@@ -491,11 +519,15 @@ msgStream.on('message', function(message){
       UserData.update(Meteor.user()._id, {$set: {on: true}});
     }
 
-
+    updateFontSizes();
 
   }
 
   if(message.type == 'addOff'){
+
+    if(typeof(message.value["time"]) != "undefined"){
+      ramp(message.value, onoffOptions); //this removes any managed options
+    }
 
     parseOptions(message.value, onoffOptions);
 
@@ -513,6 +545,8 @@ msgStream.on('message', function(message){
 
       UserData.update(Meteor.user()._id, {$set: {off: true}});
     }
+
+    updateFontSizes();
 
   }
 
@@ -542,6 +576,7 @@ msgStream.on('message', function(message){
 
 
 function numbersReset(){
+
     if(numbersOptions.pause > 0){
       Session.set('isPause', true);
       setTimeout(function(){
@@ -551,6 +586,8 @@ function numbersReset(){
     }
     Session.set('currNumber' , numbersOptions.start);
 
+    numbersOptions.vol = numbersOptions.ovol;
+    updateFontSizes();
     var v = Session.get('voice');
     v.numbers = (numbersOptions.rand) ?  chooseRandomVoice() : numbersOptions.voice;
     Session.set('voice', v);
@@ -605,7 +642,7 @@ function ramp(args, liveOptions){
       curRamp.liveOptions[i];
     }
 
-
+    updateFontSizes(); 
 
   },50);  //20 fps is enoug
 

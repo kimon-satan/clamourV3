@@ -7,6 +7,7 @@ Threads = new Meteor.Collection('Threads');
 words = ["go", "start", "stop", "end"];
 voices = ['peterUK' , 'grahamUK', 'rachelUK' , 'catherineUK', 'bridgetUK',  'rayUS', 'ryanUS', 'paulUS', 'heatherUS', 'kateUS'];
 synths = ['playWithTone', 'granPulseNoise'];
+rules = ['none', 'minus', 'plus', 'mute', 'plus_mute'];
 
 UserGroups.allow({
 
@@ -90,6 +91,26 @@ selectPlayers = function(args){
 
 	var uids = [];
 
+	var searchObj = generateSearchObj(args);
+
+
+	UserData.find(searchObj).forEach(function(e){
+		uids.push(e._id);
+	});
+
+
+	if(typeof(args.numPlayers) != "undefined"){
+		shuffleArray(uids);
+		var numPlayers = Math.min(uids.length , args.numPlayers);
+		uids = uids.slice(0,numPlayers);
+	}
+
+
+	return uids;
+}
+
+generateSearchObj = function(args){
+
 	var searchObj = {};
 
 	if(typeof(args.filters) == "undefined")args.filters = [];
@@ -143,20 +164,8 @@ selectPlayers = function(args){
 
 	}
 
+	return searchObj;
 
-	UserData.find(searchObj).forEach(function(e){
-		uids.push(e._id);
-	});
-
-
-	if(typeof(args.numPlayers) != "undefined"){
-		shuffleArray(uids);
-		var numPlayers = Math.min(uids.length , args.numPlayers);
-		uids = uids.slice(0,numPlayers);
-	}
-
-
-	return uids;
 }
 
 shuffleArray = function(o){ //v1.0

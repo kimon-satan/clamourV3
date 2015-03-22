@@ -80,6 +80,7 @@ function CLI(idx, mode, thread){
   this.thread = thread;
   this.temp_thread;
   this.cursor_prefix;
+  this.proc;
 
 
 
@@ -130,6 +131,13 @@ function CLI(idx, mode, thread){
 
   this.keydown = function(e){
 
+    if(typeof(this.proc) != "undefined" && e.keyCode == 75 && e.metaKey){
+      clearInterval(this.proc.loop);
+      this.newCursor();
+      this.proc = undefined;
+      return false;
+    }
+
     var id_str ='#cmdText' + "_" + this.idx;
 
     if(this.sus_mode == "thread" || e.keyCode == 38 || e.keyCode == 40){
@@ -157,6 +165,7 @@ function CLI(idx, mode, thread){
   }
 
   this.keyup  = function(e){
+
 
 
     var id_str ='#cmdText' + "_" + this.idx;
@@ -315,6 +324,23 @@ CLMR_CMDS["_pedalStart"] = function(args, cli){
 
 CLMR_CMDS["_killSound"]  = function(args, cli){
   Meteor.call("killSynths", Meteor.user()._id);
+  cli.newCursor();
+}
+
+CLMR_CMDS["_killProcs"] = function(args, cli){
+  for (var i in gProcs){
+    clearInterval(gProcs[i].loop);
+  }
+
+  gProcs = [];
+
+  for(var i in gClis){
+    if(typeof(gClis[i].proc) != "undefined"){
+      gClis[i].proc = undefined;
+      gClis[i].newCursor();
+    }
+  }
+
   cli.newCursor();
 }
 
@@ -532,13 +558,45 @@ CLMR_CMDS["_remove"] = function(args,  cli){
 CLMR_CMDS["_lplayers"] = function(args, cli){
 
   //add filters and info args later if desired
-  UserData.find({}).forEach(function(e){
-    var str = e._id.substring(0,5) + " :: " + e.view;
+  var selector = parseFilters(args);
+  if(!selector)selector = {};
+  var so = generateSearchObj(selector);
+
+  UserData.find(so).forEach(function(e){
+    var str = e._id.substring(0,5) + ",  view: " + e.view + ",  on: " + e.on + ",  off: "  + e.off + ",  voice: " + e.voice;
     cli.println(str);
+
   });
 
   cli.newCursor();
 }
+
+CLMR_CMDS["_iplayers"] =  function(args, cli){
+
+  var proc = {};
+  var selector = parseFilters(args);
+  proc.id = generateTempId(8);
+  if(!selector)selector = {};
+  proc.so = generateSearchObj(selector);
+  proc.loop = setInterval(function(){
+
+    $('#cmdText_' + cli.idx).val("");
+
+    UserData.find(proc.so).forEach(function(e){
+      var str = e._id.substring(0,5) + ",  view: " + e.view + ",  on: " + e.on + ",  off: "  + e.off + ",  voice: " + e.voice;
+      cli.println(str);
+
+    });
+
+  }, 500);
+
+  gProcs[proc.id] = proc;
+  cli.proc = proc;
+
+
+}
+
+
 
 CLMR_CMDS["_lthreads"] = function(args, cli){
   
@@ -555,6 +613,32 @@ CLMR_CMDS["_lthreads"] = function(args, cli){
 
 }
 
+
+CLMR_CMDS["_ithreads"] = function(args, cli){
+
+  var proc = {};
+
+  proc.id = generateTempId(8);
+  proc.loop = setInterval(function(){
+
+    $('#cmdText_' + cli.idx).val("");
+
+    Threads.find({}).forEach(function(e){
+
+      var str = e.thread + " :: " + e.population;
+      if(e.thread == cli.thread)str += " *";
+      if(e.thread == cli.temp_thread)str += " -";
+      cli.println(str);
+
+    });
+
+  }, 500);
+
+  gProcs[proc.id] = proc;
+  cli.proc = proc;
+
+}
+
 CLMR_CMDS["_lgroups"] = function(args, cli){
 
   UserGroups.find({}).forEach(function(e){
@@ -567,6 +651,30 @@ CLMR_CMDS["_lgroups"] = function(args, cli){
   cli.newCursor();
 
 
+}
+
+CLMR_CMDS["_lvoices"] = function(args, cli){
+
+  for(var i in voices){
+    cli.println(voices[i]);
+  }
+  cli.newCursor();
+}
+
+CLMR_CMDS["_lsynths"] = function(args, cli){
+
+  for(var i in synths){
+    cli.println(synths[i]);
+  }
+  cli.newCursor();
+}
+
+CLMR_CMDS["_lrules"] = function(args,cli){
+
+  for(var i in rules){
+    cli.println(rules[i]);
+  }
+  cli.newCursor();
 }
 
 CLMR_CMDS["_lcmds"] = function(args,  cli){
@@ -730,6 +838,7 @@ function addStep(args, callback, cli){
       }
       delete gProcs[proc.id];
       cli.newCursor();
+      cli.proc = undefined;
 
 
     }
@@ -738,6 +847,7 @@ function addStep(args, callback, cli){
   }, interval);
 
   gProcs[proc.id] = proc;
+  cli.proc = proc;
 
   return true;
 

@@ -79,7 +79,7 @@
 
 <template name="words">
   <a href= "#" id="wordsBox">
-  	<div id="word" class="{{voice.words}}">{{currentWord}}</div>
+  	<div id="word" class="{{voice.words}}" style="font-size: {{vol}}px">{{currentWord}}</div>
   </a>
 </template>
 
@@ -87,7 +87,7 @@
   
   {{#unless isPause}}
 	  <a href= "#" id="numberBox">
-	  	<div id="num" class="{{voice.numbers}}">{{currNumber}}</div>
+	  	<div id="num" class="{{voice.numbers}}" style="font-size: {{vol}}px">{{currNumber}}</div>
 	  </a>
   {{/unless}}
 
@@ -99,7 +99,7 @@
 		<div class="col-sm-6">
 		  {{#if isOnButton}}
 		  <a href= "#" id="onBox">
-		  	<div id="on" class="{{voice.on}} bigText">on</div>
+		  	<div id="on" class="{{voice.on}}" style="font-size: {{vol}}px">on</div>
 		  </a>
 
 		 {{else}}
@@ -110,7 +110,7 @@
 		<div class="col-sm-6">
 		  {{#if isOffButton}}
 		  <a href= "#" id="offBox">
-		  	<div id="off" class="{{voice.off}} bigText">off</div>
+		  	<div id="off" class="{{voice.off}}" style="font-size: {{vol}}px">off</div>
 		  </a>
 		  {{else}}
 		 	<div id="blankBox"></div>
