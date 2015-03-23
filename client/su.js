@@ -810,11 +810,25 @@ function addStep(args, callback, cli){
   if(!selector)selector = {filters: [{thread: cli.thread}]}; 
   
   proc.players = selectPlayers(selector);
-  proc.options = parseOptions(args);
+  proc.options = parseOptions(args, cli.cli_mode, cli);
   var interval = (totalTime/proc.players.length) * 1000;
   proc.threads = [];
 
   proc.loop = setInterval(function(){
+
+    if(proc.players.length == 0){
+      clearInterval(proc.loop);
+      //remove each of the threads
+      for(i in proc.threads){
+        Meteor.call("killThread", Meteor.user()._id, proc.threads[i]);
+      }
+      delete gProcs[proc.id];
+
+      cli.proc = undefined;
+      cli.newCursor();
+      return;
+
+    }
 
     cli.println(proc.players[0]);
     var t = generateTempId(8);
@@ -830,18 +844,7 @@ function addStep(args, callback, cli){
     var psconsole = $(id_str);
     psconsole.scrollTop(psconsole.prop('scrollHeight'));
 
-    if(proc.players.length == 0){
-      clearInterval(proc.loop);
-      //remove each of the threads
-      for(i in proc.threads){
-        Meteor.call("killThread", Meteor.user()._id, proc.threads[i]);
-      }
-      delete gProcs[proc.id];
-      cli.newCursor();
-      cli.proc = undefined;
 
-
-    }
 
 
   }, interval);
