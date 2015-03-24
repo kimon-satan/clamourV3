@@ -135,6 +135,9 @@ generateSearchObj = function(args){
 		case "voice":
 			searchObj.voice = filter.not ?  {$ne: filter.voice} : filter.voice; 
 		break;
+		case "word":
+			searchObj.word = filter.not ?  {$ne: filter.word} : filter.word; 
+		break;
 		case "thread":
 			searchObj.activeThreads = filter.not  ? {$nin: [filter.thread]} : {$in: [filter.thread]}
 		break;
@@ -172,3 +175,4 @@ shuffleArray = function(o){ //v1.0
     for(var j, x, i = o.length; i; j = Math.floor(Math.random() * i), x = o[--i], o[i] = o[j], o[j] = x);
     return o;
 }
+

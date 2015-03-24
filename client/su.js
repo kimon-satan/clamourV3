@@ -389,7 +389,7 @@ CLMR_CMDS["_wait"] = function(args,  cli){
 
     permThread(cli.cli_mode, args, 
     function(options, th){
-      msgStream.emit('message', {type: 'screenChange', 'value' : 'wait', thread: th});
+      msgStream.emit('message', {type: 'screenChange', 'value' : {mode: cli.cli_mode}, thread: th});
     }, cli);
 
 }
@@ -402,7 +402,7 @@ CLMR_CMDS["_chat"] = function(args,  cli){
 
     permThread(cli.cli_mode, args, 
     function(options, th){
-      msgStream.emit('message', {type: 'screenChange', 'value' : 'chat', thread: th});
+      msgStream.emit('message', {type: 'screenChange', 'value' : {mode: cli.cli_mode}, thread: th});
       msgStream.emit('message', {type: 'chatClear', 'value':  "", thread: th});
     }, cli);
 
@@ -413,8 +413,8 @@ CLMR_CMDS["_words"] = function(args,  cli){
   cli.cli_mode = "words";
 
   var cb = function(options, th){
-            msgStream.emit('message', {type: 'wordsChange', 'value': options, thread: th});
-            msgStream.emit('message', {type: 'screenChange', 'value' : 'words', thread: th});
+            var pkg = {options: options, mode: cli.cli_mode};
+            msgStream.emit('message', {type: 'screenChange', 'value' : pkg, thread: th});
           };
 
   if(!addStep(args, cb, cli)){
@@ -428,8 +428,8 @@ CLMR_CMDS["_numbers"] = function(args,  cli){
   cli.cli_mode = "numbers";
 
   var cb = function(options, th){
-      msgStream.emit('message', {type: 'numbersChange', 'value': options, thread: th});
-      msgStream.emit('message', {type: 'screenChange', 'value' : 'numbers', thread: th});
+      var pkg = {options: options, mode: cli.cli_mode};
+      msgStream.emit('message', {type: 'screenChange', 'value' : pkg, thread: th});
   };
 
   if(!addStep(args, cb, cli)){
@@ -444,8 +444,8 @@ CLMR_CMDS["_onoff"] = function(args,  cli){
   cli.cli_mode = "onoff";
 
   var cb =   function(options, th){
-      msgStream.emit('message', {type: 'onoffChange', 'value': options, thread: th});
-      msgStream.emit('message', {type: 'screenChange', 'value' : 'onOff', thread: th});
+      var pkg = {options: options, mode: cli.cli_mode};
+      msgStream.emit('message', {type: 'screenChange', 'value' : pkg, thread: th});
   }
 
   if(!addStep(args, cb, cli)){
@@ -466,7 +466,7 @@ CLMR_CMDS["_addon"] = function(args,  cli){
 
     var cb =  function(options, th){msgStream.emit('message', {type: 'addOn', 'value': options, thread: th});}
 
-    if(!addStep(args, cb, cli))tempThread("_addon", args,cb, cli);
+    if(!addStep(args, cb, cli, true))tempThread("_addon", args,cb, cli);
 
   }
 
@@ -482,7 +482,7 @@ CLMR_CMDS["_addoff"] = function(args, cli){
     //will actually need filters and an a temporary thread
     var cb = function(options, th){msgStream.emit('message', {type: 'addOff', 'value': options, thread: th});}
 
-    if(!addStep(args, cb, cli))tempThread("_addoff", args, cb, cli);
+    if(!addStep(args, cb, cli, true))tempThread("_addoff", args, cb, cli);
 
   }
 
@@ -753,6 +753,8 @@ CLMR_CMDS["_killall"] = function(args,  cli){
 
 CLMR_CMDS["_thread"] = function(args,  cli){
 
+  //maybe an option to add a player to this thread
+
   var r = Threads.find({},{sort: {thread: 1}}).fetch();
   cli.sus_list = [];
   for(var i in r){
@@ -786,14 +788,14 @@ CLMR_CMDS["_i"] = function(args,  cli){ //should be come update as it can deal w
 
   var cb = function(options, th){msgStream.emit('message', {type: cli.cli_mode + 'Change', 'value': options, thread: th});}
 
-  if(!addStep(args, cb, cli))tempThread("_i", args, cb, cli);
+  if(!addStep(args, cb, cli, true))tempThread("_i", args, cb, cli);
 
 }
 
 
 
 
-function addStep(args, callback, cli){
+function addStep(args, callback, cli, istemp){
 
   var i = args.indexOf("-step");
 
@@ -807,7 +809,18 @@ function addStep(args, callback, cli){
 
   proc.id = generateTempId(5);
   var selector = parseFilters(args);
-  if(!selector)selector = {filters: [{thread: cli.thread}]}; 
+  if(!selector){
+    selector = {filters: [{thread: cli.thread}]}; 
+  }else{
+    if(!istemp){
+      cli.thread = generateTempId(8);
+      selector.thread = cli.thread;
+      selector.mode = cli.cli_mode;
+      Meteor.call("addThreadToPlayers", Meteor.user()._id, selector);
+    }
+  }
+
+
   
   proc.players = selectPlayers(selector);
   proc.options = parseOptions(args, cli.cli_mode, cli);
@@ -938,10 +951,7 @@ function parseOptions(args, type, cli){
 
   var options = {}; 
 
-  if(args.length == 0){ //default to previous options
-    for(var i in gCurrentOptions[type]){
-      options[i] = gCurrentOptions[type][i];
-    }
+  if(args.length == 0){ 
     return options;
   }
 
@@ -1055,7 +1065,7 @@ function parseFilters(args){
           case "hasOff":
             filter.mode = "hasOff";
           break;
-          case "cthread":
+          case "thread":
             filter.mode = "thread";
             filter.thread = cli.thread;
           break;
@@ -1066,6 +1076,9 @@ function parseFilters(args){
             }else if(voices.indexOf(args[i]) > -1){
               filter.mode = "voice";
               filter.voice = args[i];
+            }else if(words.indexOf(args[i]) > -1){
+              filter.mode = "word";
+              filter.word = args[i];
             }else if(UserGroups.findOne({name: args[i]})){
               filter.mode = "group";
               filter.group = args[i];

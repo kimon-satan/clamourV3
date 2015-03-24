@@ -95,7 +95,7 @@ Accounts.onCreateUser(function(options, user){
 	}else{
 		user.profile = {role: 'player'};
 		//console.log(user);
-		UserData.insert({ _id: user._id, view: 'wait', isSelected: false, on: false, off: false, voice: "none", activeThreads: [], groups: []});
+		UserData.insert({ _id: user._id, view: 'wait', isSelected: false, on: false, off: false, voice: "none", word: "none", activeThreads: [], groups: []});
 	}
 
 	return user;
@@ -286,22 +286,26 @@ Meteor.methods({
 
 		if(checkAdmin(userId)){
 			var uids = UserGroups.findOne({name: args.orig}).members;
-			var gpsize = uids.length/parseInt(args.numGps);
-			if(gpsize < 2){
+			var gpsize = Math.floor(uids.length/parseInt(args.numGps));
+			console.log(gpsize);
+			if(gpsize < 1){
 				throw new Meteor.Error("invalid argument", "there aren't enough members in the parent group");
 			}else{
 				var msg = "";
 				shuffleArray(uids);
-				for(var i = 0; i < args.numGps; i++){
-					var gpname = args.orig + "_" + i;
+				var count = 0;
+				while(uids.length > 0){
+					var gpname = args.orig + "_" + count;
 					var nids = [];
+					if(count == args.numGps - 1)gpsize = uids.length;
+					
 					for(var j = 0; j < gpsize; j++){
 						UserData.update(uids[0], {$push: {groups: gpname}});
 						nids.push(uids.splice(0,1));
-						if(uids.length == 0)break;
 					}
 					UserGroups.insert({name: gpname, members: nids});
 					msg += gpname + " with " + nids.length + " members \n";
+					count ++;
 				}
 				return msg;
 			}

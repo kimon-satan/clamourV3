@@ -88,6 +88,8 @@ Template.words.events({
 
   'touchstart #wordsBox, click #wordsBox' :function(e){
 
+    if(Session.get("screenMode") != "words") return;
+
     if(buttonPressed)return;
     buttonPressed = true;
 
@@ -153,6 +155,8 @@ Template.numbers.events({
   
 
   'touchstart #numberBox, click #numberBox': function (e) {
+
+    if(Session.get("screenMode") != "numbers") return;
 
     if(buttonPressed)return;
     buttonPressed = true;
@@ -282,6 +286,7 @@ Template.onOff.events({
 
   'touchstart #onBox, click #onBox':function(e){
 
+  if(Session.get("screenMode") != "onoff") return;
     var oo = Session.get('onOffButtons');
 
     if(oo.isOnActive)return;
@@ -326,6 +331,8 @@ Template.onOff.events({
   }, 
 
   'touchstart #offBox, click #offBox':function(e){
+
+    if(Session.get("screenMode") != "onoff") return;
 
     
     var fstring = 'fadeInOut 0.3s forwards'
@@ -469,6 +476,7 @@ msgStream.on('message', function(message){
     }
 
     parseOptions(message.value, wordsOptions);
+    UserData.update(Meteor.user()._id, {$set: {word: wordsOptions.word}});
     updateFontSizes();
 
   }
@@ -477,11 +485,18 @@ msgStream.on('message', function(message){
   if(message.type == 'screenChange'){ 
 
     var osm = Session.get('screenMode');
-    Session.set('screenMode', message.value);
+    Session.set('screenMode', message.value.mode);
     UserData.update(Meteor.user()._id, {$set: {view: Session.get('screenMode')}});
-    if(osm != message.value && message.value == "numbers"){
-      numbersReset();
+
+    if(typeof(message.value.options)!= "undefined"){
+      if(message.value.mode == "words")parseOptions(message.value.options, wordsOptions);
+      if(message.value.mode == "numbers")parseOptions(message.value.options, numbersOptions);
+      if(message.value.mode == "onoff")parseOptions(message.value.options, onoffOptions);
     }
+    //if(osm != message.value){
+      if(message.value.mode == "numbers")numbersReset();
+      if(message.value.mode == "words")wordsReset();
+    //}
 
   }
 
@@ -577,24 +592,42 @@ msgStream.on('message', function(message){
 
 function numbersReset(){
 
-    if(numbersOptions.pause > 0){
-      Session.set('isPause', true);
-      setTimeout(function(){
-        Session.set('isPause', false);
-        },numbersOptions.pause * 1000
-      )
-    }
-    Session.set('currNumber' , numbersOptions.start);
+  if(numbersOptions.pause > 0){
+    Session.set('isPause', true);
+    setTimeout(function(){
+      Session.set('isPause', false);
+      },numbersOptions.pause * 1000
+    )
+  }
+  Session.set('currNumber' , numbersOptions.start);
 
-    numbersOptions.vol = numbersOptions.ovol;
-    updateFontSizes();
-    var v = Session.get('voice');
-    v.numbers = (numbersOptions.rand) ?  chooseRandomVoice() : numbersOptions.voice;
-    Session.set('voice', v);
-    numbersOptions.voice = v.numbers;
-    UserData.update(Meteor.user()._id, {$set: {voice: v.numbers}});
+  numbersOptions.vol = numbersOptions.ovol;
+  updateFontSizes();
+  var v = Session.get('voice');
+  v.numbers = (numbersOptions.rand) ?  chooseRandomVoice() : numbersOptions.voice;
+  Session.set('voice', v);
+  numbersOptions.voice = v.numbers;
+  UserData.update(Meteor.user()._id, {$set: {voice: v.numbers}});
 
  
+}
+
+function wordsReset(){
+
+  buttonPressed = false;
+
+  var v = Session.get('voice');
+  v.words = (wordsOptions.rand) ? chooseRandomVoice() : wordsOptions.voice;
+  Session.set('voice', v);
+  wordsOptions.voice = v.words;
+  Session.set('currentWord', wordsOptions.word);
+  UserData.update(Meteor.user()._id, {$set: {voice: v.words}});
+  console.log(v.words);
+
+    $('#wordsBox').css('opacity', 0.25);
+    $('#wordsBox').css('-webkit-animation', 'nil'); 
+    $('#wordsBox').css('animation', 'nil'); 
+
 }
 
 
