@@ -178,6 +178,7 @@ Template.numbers.events({
 
     if(numbersOptions.rule == "minus"){
       numbersOptions.vol *= 0.9;
+      numbersOptions.vol = Math.max(0.03, numbersOptions.vol);
     }else if(numbersOptions.rule == "plus"){
       numbersOptions.vol *= 1.1;
       numbersOptions.vol =  Math.min(numbersOptions.vol, 1.0);

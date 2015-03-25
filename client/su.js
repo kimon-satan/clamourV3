@@ -423,6 +423,21 @@ CLMR_CMDS["_words"] = function(args,  cli){
 
 }
 
+CLMR_CMDS["_blank"] = function(args, cli){
+
+  cli.cli_mode = "blank";
+
+  var cb = function(options, th){
+            var pkg = {options: options, mode: cli.cli_mode};
+            msgStream.emit('message', {type: 'screenChange', 'value' : pkg, thread: th});
+          };
+
+  if(!addStep(args, cb, cli)){
+    permThread(cli.cli_mode, args, cb, cli);
+  }
+
+}
+
 CLMR_CMDS["_numbers"] = function(args,  cli){
 
   cli.cli_mode = "numbers";
@@ -721,10 +736,36 @@ CLMR_CMDS["_loptions"] = function(args,  cli){
     t = cli.cli_mode;
   }
 
-  for(var o in gCurrentOptions[t]){
-    cli.println(o + ": " + gCurrentOptions[t][o]);
+  i = args.indexOf("-p");
+  var name;
+
+  if(i > -1){
+    args.splice(i,1);
+    name = args[i]
+    args.splice(i,1);
   }
 
+  var preset = Presets.findOne({name: name, type: t});
+
+  if(preset){
+    for(item in preset.options){
+      var tp = typeof(preset.options[item]);
+      if(tp == "number" || tp == "string" || tp == "boolean"){
+        cli.println(item + ": " + preset.options[item]);
+      }else{
+        var str = item + ": ";
+        for(var o in preset.options[item]){
+          str += ", " + preset.options[item][o];
+        }
+        cli.println(str);
+      }
+      
+    }
+  }else{
+    for(o in gCurrentOptions[t]){
+      cli.println(o + ": " + gCurrentOptions[t][o]);
+    }
+  }
 
   cli.newCursor();
 
