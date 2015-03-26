@@ -796,20 +796,27 @@ CLMR_CMDS["_thread"] = function(args,  cli){
 
   //maybe an option to add a player to this thread
 
-  var r = Threads.find({},{sort: {thread: 1}}).fetch();
-  cli.sus_list = [];
-  for(var i in r){
-    cli.sus_list.push(r[i].thread);
+  if(args.length == 0){
+
+    var r = Threads.find({},{sort: {thread: 1}}).fetch();
+    cli.sus_list = [];
+    for(var i in r){
+      cli.sus_list.push(r[i].thread);
+    }
+
+    if(cli.sus_list.length > 0){
+      cli.sus_mode = "thread";
+      cli.sus_idx = cli.sus_list.indexOf(cli.thread);
+      cli.println(cli.sus_list[cli.sus_idx]);
+    }else{
+      cli.println("there are no threads ...");
+      cli.newCursor();
+    }
+
+  }else{
+    permThread("cmd", args, function(e,r){}, cli);
   }
 
-  if(cli.sus_list.length > 0){
-    cli.sus_mode = "thread";
-    cli.sus_idx = cli.sus_list.indexOf(cli.thread);
-    cli.println(cli.sus_list[cli.sus_idx]);
-  }else{
-    cli.println("there are no threads ...");
-    cli.newCursor();
-  }
 }
 
 /*-----------------------------------------------MORE SPECIFIC-------------------------------------------*/
