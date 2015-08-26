@@ -276,7 +276,7 @@ Meteor.methods({
 				UserData.update(uids[i], {$push: {groups: args.group}});
 			}
 
-			UserGroups.upsert({name: args.group, members: uids});
+			UserGroups.upsert({name: args.group }, {name: args.group, members: uids});
 			return  uids.length + " players will now be called " + args.group;
 
 		}
@@ -303,7 +303,7 @@ Meteor.methods({
 						UserData.update(uids[0], {$push: {groups: gpname}});
 						nids.push(uids.splice(0,1));
 					}
-					UserGroups.upsert({name: gpname, members: nids});
+					UserGroups.upsert({name: gpname }, {name: gpname, members: nids});
 					msg += gpname + " with " + nids.length + " members \n";
 					count ++;
 				}
