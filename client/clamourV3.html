@@ -1,9 +1,9 @@
 <head>
   <title>Clamour</title>
-  <meta name="viewport" content="minimal-ui width=device-width, initial-scale=1, maximum-scale=1">
+   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0"/> 
 </head>
 
-<body>
+<body scroll="no">
 
 	
 		{{#if currentUser}}
@@ -15,13 +15,14 @@
 		  </div>
 		  {{/if}}
 		{{else}}
-		 <div class="container text-center">
+		<div class="container text-center">
 			{{#if isSuLogin}}
 				{{>helloSu}}
 			{{else}}
 		  		{{>hello}}
 		  	{{/if}}
 		 </div>
+
 		{{/if}}
 
 
@@ -29,9 +30,11 @@
 
 <template name="hello">
 
+	
 	<h1>Clamour</h1>
 
 	<a href="#" id="play" class="btn btn-lg btn-success tbSpacer">Play</a>
+
 
 </template>
 
@@ -58,6 +61,10 @@
 
 	{{#if isScreen 'onoff'}}
 		{{>onOff}}
+	{{/if}}
+
+	{{#if isScreen 'blob'}}
+		{{>blob}}
 	{{/if}}
 
 	{{#if isScreen 'blank'}}
@@ -125,5 +132,12 @@
 	<a href= "#" id="offBox">
 	  	<div id="offT" class="{{currentVoice}} bigText">off</div>
 	</a>
+</template>
+
+<template name="blob">
+	<div style="position: fixed">
+		<canvas id="myCanvas"></canvas>
+	</div>
+
 </template>
 

@@ -469,6 +469,21 @@ CLMR_CMDS["_onoff"] = function(args,  cli){
   
 }
 
+CLMR_CMDS["_blob"] = function(args,  cli){
+
+  cli.cli_mode = "blob";
+
+  var cb =   function(options, th){
+      var pkg = {options: options, mode: cli.cli_mode};
+      msgStream.emit('message', {type: 'screenChange', 'value' : pkg, thread: th});
+  }
+
+  if(!addStep(args, cb, cli)){ // checks for stepped change first
+    permThread(cli.cli_mode, args, cb, cli); //otherwise instant change
+  }
+  
+}
+
 
 
 CLMR_CMDS["_addon"] = function(args,  cli){
@@ -845,6 +860,8 @@ CLMR_CMDS["_i"] = function(args,  cli){ //should be come update as it can deal w
 
 function addStep(args, callback, cli, istemp){
 
+  //looks like this function is for executing a change in a stepped fashion
+
   var i = args.indexOf("-step");
 
   if(i < 0)return false;
@@ -921,6 +938,8 @@ function addStep(args, callback, cli, istemp){
 
 function permThread(cmd, args, send,  cli){
 
+  //disambiguate from temp thread
+
   var selector = parseFilters(args);
   if(selector)cli.thread = generateTempId(5); 
   var options = parseOptions(args, cmd, cli);
@@ -955,6 +974,8 @@ function permThread(cmd, args, send,  cli){
 
 function tempThread(cmd, args, send,  cli){
 
+
+  //need to remember why this is different from permThread and when it is called
 
   Meteor.call("killThread" ,Meteor.user()._id, cli.temp_thread, function(e,r){
 
@@ -996,6 +1017,9 @@ function tempThread(cmd, args, send,  cli){
 
 
 function parseOptions(args, type, cli){
+
+
+  //parses options into an object 
 
   var options = {}; 
 
@@ -1080,6 +1104,8 @@ function parseOptions(args, type, cli){
 
 
 function parseFilters(args){
+
+  //parses a set of selction filters into a mongo selector
 
   var selector = {};
 

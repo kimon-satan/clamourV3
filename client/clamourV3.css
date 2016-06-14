@@ -1,6 +1,7 @@
 /* CSS declarations go here */
 
 
+
 @font-face {
     font-family: peter;
     src: url(Adamina-Regular.ttf);
@@ -105,12 +106,14 @@
 }
 
 
-body{
+body , html{
 
 	font-family: "Helvetica", sans-serif;
-
 	background: #000;
 	color: #BBB;
+    margin: 0; 
+    height: 100%; 
+    overflow: hidden;
 
 }
 

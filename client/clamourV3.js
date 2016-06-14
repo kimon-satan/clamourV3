@@ -11,6 +11,10 @@ var onoffOptions = {};
 
 var curRamp = {};
 
+var counter = 0;
+var pos = {x: 0, y: 0};
+var canvasCallback;
+
 
 
 Template.hello.events({
@@ -387,7 +391,64 @@ Template.onOff.events({
 
 });
 
+Template.blob.onRendered (function(){
 
+    var canvas = $('#myCanvas')[0];
+    canvas.setAttribute('width', 400);
+    canvas.setAttribute('height', 600);
+    Meteor.clearInterval(canvasCallback);
+    canvasCallback = Meteor.setInterval(moveSquare, 10);
+
+    canvas.addEventListener("touchstart", function (e) {
+      
+      pos = getTouchPos(canvas, e);
+
+    }, false);
+
+    canvas.addEventListener("touchmove", function (e) {
+      
+      pos = getTouchPos(canvas, e);
+
+    }, false);
+
+
+});
+
+Template.blob.onDestroyed(function(){
+
+  Meteor.clearInterval(canvasCallback);
+
+  })
+
+function moveSquare(){
+
+    var canvas = $('#myCanvas')[0];
+    counter += 1;
+    var context = canvas.getContext('2d');
+    context.clearRect(0, 0, canvas.width, canvas.height);
+
+    var w = canvas.width / 2 - 50;
+    var phase = 5 * counter/360;
+
+    for(var i = 0; i < 20; i++)
+    {
+      context.fillStyle = 'green';
+      context.fillRect(w + Math.sin(phase + i * Math.PI/10)  * w , w + Math.cos(phase + i * Math.PI/10) * w, 20, 20);
+
+    }
+
+      context.fillStyle = 'red';
+      context.fillRect(pos.x, pos.y, 20, 20);
+
+  }
+
+function getTouchPos(canvasDom, touchEvent) {
+  var rect = canvasDom.getBoundingClientRect();
+  return {
+    x: touchEvent.touches[0].clientX - rect.left,
+    y: touchEvent.touches[0].clientY - rect.top
+  };
+}
 
 
 /*-------------------------------------RECIEVERS-------------------------------------------*/
