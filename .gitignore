@@ -1,4 +1,2 @@
-client/.DS_Store
-public/.DS_Store
-server/.DS_Store
+node_modules/
 .DS_Store

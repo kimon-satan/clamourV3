@@ -1,7 +1,8 @@
 var osc, dgram, udp, host, port;
 
-osc = Meteor.require('osc-min');
-dgram = Meteor.require ('dgram');
+osc = require('osc-min');
+dgram = require('dgram');
+
 
 
 Meteor.startup(function(){
