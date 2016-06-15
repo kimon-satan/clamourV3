@@ -453,6 +453,8 @@ Meteor.methods({
 
 			UserGroups.remove({});
 
+			console.log("clearing player DB");
+
 			
 		}
 

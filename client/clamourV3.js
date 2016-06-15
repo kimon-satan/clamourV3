@@ -12,15 +12,22 @@ var onoffOptions = {};
 var curRamp = {};
 
 
+Template.hello.onCreated(function(){
 
+  buttonPressed = false;
+
+});
 
 
 Template.hello.events({
 
   'touchstart #play, click #play':function(e){
 
+    if(buttonPressed)return;
+    buttonPressed = true;
     var un = generateTempId(10);
     Accounts.createUser({username: un, password: '1234'});
+    
     e.preventDefault();
   }
 
