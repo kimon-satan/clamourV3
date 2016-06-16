@@ -114,14 +114,16 @@ function Blob(){
 
 
 	this.touchCount = 0;
-	this.maxTouchCount = 200;
+	this.maxTouchCount = 25;
 	this.numPoints = 100;
 	this.points = [];
 	this.growth = 0.001;
 	this.energy = 0;
 	this.sleeping = false;
-	this.timeout = null;
-
+	this.release = 5000;
+	this.releaseCount = 0;
+	this.noise = new Rand(Math.random());
+	this.options = blobOptions;
 
 
 	/////////////////////METHODS//////////////////////
@@ -139,7 +141,7 @@ function Blob(){
 		{
 
 			
-			var mul = rand(i/this.numPoints + seed);
+			var mul = this.noise.getRand(i/this.numPoints + seed);
 			var r = radius * mix * mul + radius * (1 - mix);
 
 			var p = new vec2d(
@@ -148,11 +150,21 @@ function Blob(){
 					);
 			this.points.push(p);
 		}
+
+		this.options = {
+
+		    amp: 1,
+		    pan:  Math.random() * 1.5 * 0.75,
+		    tweetRel: 2.0 + Math.random() * 6.0,
+			tweetMul: Math.random(),
+			tweetAdd: 66 + Math.random() * 40,
+			combMul: Math.random(),
+			shotDec: 0.01 + Math.pow(Math.random(),2) * 0.5,
+		    splay: 0
+
+		  }
 	}
 
-	this.wakeup = function(){
-		this.sleeping = false;
-	}
 
 	this.increment = function()
 	{
@@ -163,7 +175,9 @@ function Blob(){
 		{
 			this.touchCount = 0;
 			this.sleeping = true;
-			this.timeout = setTimeout(this.wakeup.bind(this), 3000);
+			this.release = this.options.tweetRel * 1000;
+			this.releaseCount = this.release;
+			Meteor.call('blobPing', this.options); // sound options will go here
 		}
 
 		this.growth = Math.max(0.001, Math.min(1.0,this.touchCount/this.maxTouchCount));
@@ -176,11 +190,43 @@ function Blob(){
 
 	this.draw = function(ctx){
 
-		if(this.sleeping)return;
+		ctx.translate(canvasCenter.x, canvasCenter.y);
+
+		if(this.sleeping){
+
+			this.releaseCount -= 10;
+			if(this.releaseCount < 0)this.sleeping = false;
+			
+			// draw hairs
+			var a = this.releaseCount /this.release;
+
+			ctx.beginPath();
+			ctx.lineWidth="3";
+			ctx.strokeStyle="rgba(255, 130, 171, " + a + ")";
+
+			for(var j = 0; j < 20; j++){
+
+				var p = new vec2d(
+					(rand(j/20.0) - 0.5 ) * canvasCenter.x * 2.0, 
+					(rand(((j+10)%20.0)/20.0) - 0.5 ) * canvasCenter.y * 2.0
+					);
+
+				ctx.moveTo(p.x, p.y);
+				for(var i = 0; i < 10; i++){
+
+					p.add(new vec2d(10 * Math.random() - 5, 10 * Math.random() - 5));
+					ctx.lineTo( p.x, p.y);
+				}
+
+			}
+
+			ctx.stroke();
+
+			return;
+		}
 
 		var shift = this.energy * 20;
-
-		ctx.translate(canvasCenter.x, canvasCenter.y);
+	
 		ctx.translate(Math.random() * shift, Math.random() * shift);
 		ctx.scale(this.growth, this.growth);
 
@@ -209,8 +255,8 @@ function Blob(){
 	}
 
 	/////////////////////////////////////
+	this.touchCount = -1;
 	this.increment();
-	this.resetPoints();
 
 	return this;
 }

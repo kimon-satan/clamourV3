@@ -8,6 +8,7 @@ var panOffset = Math.random() * 2 - 1;
 var numbersOptions = {};
 var wordsOptions = {};
 var onoffOptions = {};
+blobOptions = {};
 
 var curRamp = {};
 
@@ -49,6 +50,8 @@ Template.clamour.created = function(){
 
     wordsOptions = Presets.findOne({type: "words", name: "df"}).options;
     onoffOptions = Presets.findOne({type: "onoff", name: "df"}).options;
+    blobOptions = Presets.findOne({type: "blob", name: "df"}).options;
+
     var v = {
 
       numbers: numbersOptions.voice,

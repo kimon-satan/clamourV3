@@ -86,6 +86,26 @@ Meteor.startup(function(){
 
 	}
 
+	if(!Presets.findOne({type: "blob", name: "df"})){
+		console.log("creating blob defaults");
+		//create one
+		var p = {
+
+		    amp: 1,
+		    pan:  0,
+		    tweetRel: 5.0,
+			tweetMul: 0.25,
+			tweetAdd: 95,
+			combMul: 0.5,
+			shotDec: 0.5,
+		    splay: 0
+
+		  }
+
+		 Presets.insert({type: "blob", name: "df", options: p});
+
+	}
+
 
 });
 
@@ -380,6 +400,30 @@ Meteor.methods({
 		}
 
 	},
+
+	blobPing:function(options) { 
+
+		var args = [];
+
+	  	for(var p in options)
+	  	{
+	  		args.push(p);
+			args.push(options[p]);
+	  	}
+
+
+		var buf = osc.toBuffer({
+			address: "/blob",
+			args: args
+	  	});
+
+	  	console.log(args);
+
+	  	udp.send(buf, 0, buf.length, port, host);
+
+		
+	},
+
 
 	numPing:function(options) { 
 
