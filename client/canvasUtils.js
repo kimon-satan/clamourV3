@@ -130,23 +130,28 @@ vec2d = function(x, y){
 //hashable random function
 
 rand = function(x){
-	var f  = ((x * 10000000000051 + 476823767)%1633487264387 )/1633487264387; 
+	var f  = fract(Math.sin(x)*1308153369613);
 	return f;
 }
 
-// one with a seed for multiple instances
+fract = function(f)
+{
+	return (f < 1.0) ? f : (f % Math.floor(f));
+}
+
+//seedable object
 
 Rand = function(seed) {
 
-	//seed between 0 and 1
-	
-	this.seed = seed;
+	//ensures seed is a 6 digit number
+	this.seed = Math.floor(rand(seed) * 100000);
 
 	this.getRand = function(x){
-		x = (x + seed)%1.0;
-
-		var f  = ((x * 1308153369613)%3628811 )/3628811.0; 
+	
+		var f  = fract(Math.sin(x)*1308153369613 + seed);
 		return f;
 	}
 }
+
+
 

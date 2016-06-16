@@ -469,9 +469,9 @@ CLMR_CMDS["_onoff"] = function(args,  cli){
   
 }
 
-CLMR_CMDS["_blob"] = function(args,  cli){
+CLMR_CMDS["_balloons"] = function(args,  cli){
 
-  cli.cli_mode = "blob";
+  cli.cli_mode = "balloons";
 
   var cb =   function(options, th){
       var pkg = {options: options, mode: cli.cli_mode};

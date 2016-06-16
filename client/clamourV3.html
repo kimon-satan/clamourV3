@@ -61,8 +61,8 @@
 		{{>onOff}}
 	{{/if}}
 
-	{{#if isScreen 'blob'}}
-		{{>blob}}
+	{{#if isScreen 'balloons'}}
+		{{>balloons}}
 	{{/if}}
 
 	{{#if isScreen 'blank'}}
@@ -132,7 +132,7 @@
 	</a>
 </template>
 
-<template name="blob">
+<template name="balloons">
 	<div style="position: fixed">
 		<canvas id="canvas"></canvas>
 	</div>
