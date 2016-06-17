@@ -5,10 +5,11 @@ msgStream = new Meteor.Stream('msgStream');
 var buttonPressed = false;
 var panOffset = Math.random() * 2 - 1;
 
-var numbersOptions = {};
-var wordsOptions = {};
-var onoffOptions = {};
+numbersOptions = {};
+wordsOptions = {};
+onoffOptions = {};
 blobOptions = {};
+blob = new Blob();
 
 var curRamp = {};
 
@@ -51,6 +52,8 @@ Template.clamour.created = function(){
     wordsOptions = Presets.findOne({type: "words", name: "df"}).options;
     onoffOptions = Presets.findOne({type: "onoff", name: "df"}).options;
     blobOptions = Presets.findOne({type: "balloons", name: "df"}).options;
+    parseOptions(blobOptions, blob.options );
+    blob.reset();
 
     var v = {
 
@@ -464,6 +467,8 @@ msgStream.on('message', function(message){
 
     if(message.value.reset == true){
       //do a reset
+      blob.options = blobOptions;
+      blob.reset();
     }
   
 
@@ -494,6 +499,7 @@ msgStream.on('message', function(message){
       if(message.value.mode == "balloonsChange"){
         parseOptions(message.value.options, blobOptions);
         blob.options = blobOptions;
+        blob.reset();
       }
       if(message.value.mode == "words")parseOptions(message.value.options, wordsOptions);
       if(message.value.mode == "numbers")parseOptions(message.value.options, numbersOptions);

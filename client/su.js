@@ -893,7 +893,7 @@ function addStep(args, callback, cli, istemp){
 
   
   proc.players = selectPlayers(selector);
-  proc.options = parseOptions(args, cli.cli_mode, cli);
+  proc.options = parseSuOptions(args, cli.cli_mode, cli);
   var interval = (totalTime/proc.players.length) * 1000;
   proc.threads = [];
 
@@ -947,7 +947,7 @@ function permThread(cmd, args, send,  cli){
 
   var selector = parseFilters(args);
   if(selector)cli.thread = generateTempId(5); 
-  var options = parseOptions(args, cmd, cli);
+  var options = parseSuOptions(args, cmd, cli);
 
   if(selector){
     selector.thread = cli.thread;
@@ -988,7 +988,7 @@ function tempThread(cmd, args, send,  cli){
 
       var selector = parseFilters(args);
       cli.temp_thread = generateTempId(5); //create a new thread as it's a new selection
-      var options = parseOptions(args, cli.cli_mode, cli);
+      var options = parseSuOptions(args, cli.cli_mode, cli);
 
       if(selector){
         selector.thread = cli.temp_thread;
@@ -1021,7 +1021,7 @@ function tempThread(cmd, args, send,  cli){
 
 
 
-function parseOptions(args, type, cli){
+function parseSuOptions(args, type, cli){
 
 
   //parses options into an object 

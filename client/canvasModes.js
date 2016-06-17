@@ -6,7 +6,6 @@ var frameCount = 0;
 var touchPos = new vec2d(0,0);
 var canvasCallback;
 var canvasCenter = new vec2d(0,0);
-blob = null;
 
 Template.balloons.onRendered (function(){
 
@@ -28,7 +27,6 @@ Template.balloons.onRendered (function(){
 	    	canvas.setAttribute('height', height);
 	    	canvasCenter.x = width/2;
 			canvasCenter.y = height/2;
-			blob = new Blob();
 		}
 
 
@@ -110,11 +108,10 @@ function getTouchtouchPos(canvasDom, touchEvent)
 
 
 
-function Blob(){
+Blob = function(){
 
 
 	this.touchCount = 0;
-	this.maxTouchCount = 10;
 	this.numPoints = 100;
 	this.points = [];
 	this.growth = 0.001;
@@ -123,8 +120,7 @@ function Blob(){
 	this.release = 5000;
 	this.releaseCount = 0;
 	this.noise = new Rand(Math.random());
-	this.options = blobOptions;
-	this.maxTouchCount = this.options.maxTouches;
+	this.options = {};
 
 
 	/////////////////////METHODS//////////////////////
@@ -161,20 +157,20 @@ function Blob(){
 
 		this.touchCount += 1;
 
-		if(this.touchCount > this.maxTouchCount)
+		if(this.touchCount > this.options.maxTouches)
 		{
-			this.reset();
+			this.trigger();
 		}
 
-		this.growth = Math.max(0.001, Math.min(1.0,this.touchCount/this.maxTouchCount));
+		this.growth = Math.max(0.001, Math.min(1.0,this.touchCount/this.options.maxTouches));
 		this.growth = Math.pow(this.growth,0.25);
-		this.energy = Math.pow(this.touchCount/this.maxTouchCount, 2);
+		this.energy = Math.pow(this.touchCount/this.options.maxTouches, 2);
 		this.resetPoints();
 
 
 	}
 
-	this.reset = function(){
+	this.trigger = function(){
 
 		this.touchCount = 0;
 		this.sleeping = true;
@@ -185,24 +181,9 @@ function Blob(){
 
 		Meteor.call('blobPing', this.options); //trigger the sound
 
-		//this was just for debugging
-	/*this.options = {
-
-	    amp: 1,
-	    pan:  Math.random() * 1.5 * 0.75,
-	    tweetRel: 2.0 + Math.random() * 6.0,
-		tweetMul: Math.random(),
-		tweetAdd: 66 + Math.random() * 40,
-		combMul: Math.random(),
-		shotDec: 0.01 + Math.pow(Math.random(),2) * 0.5,
-	    splay: 0
-
-	  }*/
 
 	  	//now get the new options
 		this.options = blobOptions; 
-		//TODO: unhack this
-		this.maxTouchCount = this.options.maxTouches;
 		
 	}
 
@@ -272,9 +253,12 @@ function Blob(){
 		ctx.setTransform(1,0,0,1,0,0); //essentially pop matrix
 	}
 
-	/////////////////////////////////////
-	this.touchCount = -1;
-	this.increment();
+	this.reset = function(){
+		this.touchCount = -1;
+		this.increment();
+	}
+
+
 
 	return this;
 }
