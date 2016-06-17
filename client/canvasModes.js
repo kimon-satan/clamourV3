@@ -6,6 +6,8 @@ var frameCount = 0;
 var touchPos = new vec2d(0,0);
 var canvasCallback;
 var canvasCenter = new vec2d(0,0);
+wall = null;
+symbol = null;
 
 Template.balloons.onRendered (function(){
 
@@ -27,6 +29,8 @@ Template.balloons.onRendered (function(){
 	    	canvas.setAttribute('height', height);
 	    	canvasCenter.x = width/2;
 			canvasCenter.y = height/2;
+			wall = new Wall();
+			symbol = new Symbol();
 		}
 
 
@@ -51,7 +55,10 @@ Template.balloons.onRendered (function(){
 	    canvas.addEventListener("touchend", function (e) {
 	      
 	      //console.log("end");
-	      blob.increment();
+	      //blob.increment();
+	      if(wall.increment()){
+	      	symbol.trigger();
+	      }
 
 	    }, false);
 
@@ -81,11 +88,14 @@ function draw()
 
     var canvas = $('#canvas')[0];
     frameCount += 1;
-    var context = canvas.getContext('2d');
+    var context = canvas.getContext("2d");
     context.setTransform(1,0,0,1,0,0);
     context.clearRect(0, 0, canvas.width, canvas.height);
 
-    blob.draw(context);
+    //blob.draw(context);
+
+    symbol.draw(context);
+    if(wall.bricks.length > 0)wall.draw(context);
 }
 
 function getTouchtouchPos(canvasDom, touchEvent)
@@ -262,5 +272,135 @@ Blob = function(){
 
 	return this;
 }
+
+/////////////////////////////////////////////////////////////////////////////////////
+
+Symbol = function()
+{
+
+	this.reactMax = 100;
+	this.reactCount = -1;
+	this.alpha = 0;
+
+	this.trigger = function(){
+		this.reactCount = this.reactMax;
+	}
+
+	this.draw = function(ctx)
+	{
+		ctx.translate(canvasCenter.x, canvasCenter.y);
+
+		if(this.reactCount < 0)
+		{
+			ctx.fillStyle = "rgba(255,0,0, 0.5)";
+			ctx.beginPath();
+			ctx.moveTo(0,-100);
+			ctx.lineTo(100, 100);
+			ctx.lineTo(-100, 100);
+			ctx.closePath();
+			ctx.fill();
+		}else{
+
+			if(this.reactCount > 0)this.reactCount -= 1;
+			var phase = (1.0 - this.reactCount/this.reactMax ) * Math.PI * 1.5;
+			this.alpha = 0.5 + Math.sin(phase) * 0.5;
+			
+			ctx.fillStyle = "rgba(255,0,0," + this.alpha + " )";
+			ctx.beginPath();
+			ctx.moveTo(0,-100);
+			ctx.lineTo(100, 100);
+			ctx.lineTo(-100, 100);
+			ctx.closePath();
+			ctx.fill();
+		}
+
+		ctx.setTransform(1,0,0,1,0,0); //essentially pop matrix
+	}
+}
+
+
+Wall = function(){
+
+	this.bricks = [];
+	this.numCols = 3;
+	this.numRows = 3;
+
+	this.reset = function(){
+
+		var w = (canvasCenter.x * 2)/this.numCols;
+		var h = (canvasCenter.y * 2)/this.numRows;
+
+		this.bricks.length = 0;
+
+		bdims = vec2d(w + 2,h + 2);
+		for(var i = 0; i < this.numCols; i++)
+		{
+			for(var j = 0; j < this.numRows; j++)
+			{
+				var pos = new vec2d(i*w - canvasCenter.x, j*h - canvasCenter.y);
+				this.bricks.push(new Brick(pos, bdims));
+			}
+		}
+		
+	}
+
+	this.draw = function(ctx){
+
+		ctx.translate(canvasCenter.x, canvasCenter.y);
+
+		for(b in this.bricks)
+		{
+			this.bricks[b].draw(ctx);
+		}
+
+		ctx.setTransform(1,0,0,1,0,0); //essentially pop matrix
+	}
+
+	this.increment = function(){
+
+		var index = Math.floor(Math.random() * this.bricks.length);
+
+		if(!this.bricks[index].increment())
+		{
+			var p = this.bricks[index];
+			this.bricks.splice(index);
+			delete p;
+		}
+
+		return (this.bricks.length == 0);
+
+	}
+
+	this.reset();
+
+}
+
+Brick = function(pos, dims){
+
+	this.pos = pos;
+	this.dims = dims;
+	this.state = 3;
+	this.alpha = 255;
+	
+
+	this.draw = function(ctx){
+
+		var lum = Math.floor(this.alpha * 255);
+		ctx.fillStyle = 'rgb(' + lum + ',' + lum + ',' + lum  + ')';
+		ctx.fillRect(this.pos.x, this.pos.y, this.dims.x, this.dims.y);
+
+	}
+
+	this.increment = function()
+	{
+		this.state = Math.max(0,this.state - 1);
+		this.alpha = (this.state/10.0);
+		return (this.state > 0);
+	}
+
+
+}
+
+
 
 
