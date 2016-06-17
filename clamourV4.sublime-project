@@ -4,5 +4,14 @@
 		{
 			"path": "."
 		}
-	]
+	],
+
+	"ternjs":
+    {
+        "exclude":
+        [
+            ".meteor/**",
+            "node_modules/**"
+        ]
+    }
 }

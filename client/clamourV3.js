@@ -50,7 +50,7 @@ Template.clamour.created = function(){
 
     wordsOptions = Presets.findOne({type: "words", name: "df"}).options;
     onoffOptions = Presets.findOne({type: "onoff", name: "df"}).options;
-    blobOptions = Presets.findOne({type: "blob", name: "df"}).options;
+    blobOptions = Presets.findOne({type: "balloons", name: "df"}).options;
 
     var v = {
 
@@ -405,30 +405,6 @@ Template.onOff.events({
 /*-------------------------------------RECIEVERS-------------------------------------------*/
 
 
-function parseOptions(options_i, options_o){
-
-  for(var i in options_i){
-
-    if(typeof(options_i[i]) == "string" || typeof(options_i[i]) == "number"){
-        options_o[i] = isNumber(options_i[i])? parseFloat(options_i[i]) : options_i[i];
-    }else if(typeof(options_i[i]) == "object"){
-        if(options_i[i] instanceof Array){
-          var idx = parseInt(Math.floor(Math.random() * options_i[i].length));
-          options_o[i] = isNumber(options_i[i][idx])? parseFloat(options_i[i][idx]) : options_i[i][idx];
-        }else{
-          var r = parseFloat(options_i[i].max) - parseFloat(options_i[i].min);
-          options_o[i] = Math.random() * r + options_i[i].min;
-
-        }
-    }else if(typeof(options_i[i]) == "boolean"){
-      options_o[i] = options_i[i];
-    }
-
-  }
-
-}
-
-
 msgStream.on('userMessage', function(message){
 
    
@@ -480,6 +456,19 @@ msgStream.on('message', function(message){
 
   }
 
+  if(message.type == 'balloonsChange'){
+
+    
+    parseOptions(message.value, blobOptions);
+    
+
+    if(message.value.reset == true){
+      //do a reset
+    }
+  
+
+  }
+
 
 
   if(message.type == 'wordsChange'){
@@ -502,6 +491,10 @@ msgStream.on('message', function(message){
     UserData.update(Meteor.user()._id, {$set: {view: Session.get('screenMode')}});
 
     if(typeof(message.value.options)!= "undefined"){
+      if(message.value.mode == "balloonsChange"){
+        parseOptions(message.value.options, blobOptions);
+        blob.options = blobOptions;
+      }
       if(message.value.mode == "words")parseOptions(message.value.options, wordsOptions);
       if(message.value.mode == "numbers")parseOptions(message.value.options, numbersOptions);
       if(message.value.mode == "onoff")parseOptions(message.value.options, onoffOptions);
@@ -644,7 +637,7 @@ function wordsReset(){
 }
 
 
-function ramp(args, liveOptions){
+ramp = function(args, liveOptions){
 
   var o = liveOptions;
 
@@ -697,33 +690,3 @@ function ramp(args, liveOptions){
 
 }
 
-/*---------------------------------------------------------GENERIC FUNCTIONS-----------------------------------*/
-
-function randCol(){
-
-	return '#'+Math.floor(Math.random()*16777215).toString(16);
-}
-
-function chooseRandomVoice(){
-    var v = voices[Math.floor(Math.random() * voices.length)];
-    return v;
-}
-
-
-generateTempId  = function(n){
-
-  var chars = "abcdefghijklmnnopqrstuvwxyz1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ!@£$%^&*()-=_+";  
-  var count = 0;
-  var str = "";
-  var idx;
-
-  while(count < n){
-
-    idx = Math.random() * (chars.length - 1);
-    str += chars[parseInt(idx)];
-    count++;
-  }
-
-  return str;
-
-}

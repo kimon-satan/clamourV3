@@ -44,6 +44,7 @@ Template.su.created = function(){
     gCurrentOptions["numbers"] = Presets.findOne({type: "numbers", name: "df"}).options;
     gCurrentOptions["words"] = Presets.findOne({type: "words", name: "df"}).options;
     gCurrentOptions["onoff"] = Presets.findOne({type: "onoff", name: "df"}).options;
+    gCurrentOptions["balloons"] = Presets.findOne({type: "balloons", name: "df"}).options;
 
   });
 
@@ -760,7 +761,11 @@ CLMR_CMDS["_loptions"] = function(args,  cli){
     args.splice(i,1);
   }
 
+ console.log(name, t);
+
   var preset = Presets.findOne({name: name, type: t});
+  console.log(preset);
+
 
   if(preset){
     for(item in preset.options){

@@ -6,7 +6,7 @@ var frameCount = 0;
 var touchPos = new vec2d(0,0);
 var canvasCallback;
 var canvasCenter = new vec2d(0,0);
-var blob;
+blob = null;
 
 Template.balloons.onRendered (function(){
 
@@ -114,7 +114,7 @@ function Blob(){
 
 
 	this.touchCount = 0;
-	this.maxTouchCount = 25;
+	this.maxTouchCount = 10;
 	this.numPoints = 100;
 	this.points = [];
 	this.growth = 0.001;
@@ -124,6 +124,7 @@ function Blob(){
 	this.releaseCount = 0;
 	this.noise = new Rand(Math.random());
 	this.options = blobOptions;
+	this.maxTouchCount = this.options.maxTouches;
 
 
 	/////////////////////METHODS//////////////////////
@@ -150,19 +151,7 @@ function Blob(){
 					);
 			this.points.push(p);
 		}
-
-		this.options = {
-
-		    amp: 1,
-		    pan:  Math.random() * 1.5 * 0.75,
-		    tweetRel: 2.0 + Math.random() * 6.0,
-			tweetMul: Math.random(),
-			tweetAdd: 66 + Math.random() * 40,
-			combMul: Math.random(),
-			shotDec: 0.01 + Math.pow(Math.random(),2) * 0.5,
-		    splay: 0
-
-		  }
+		 
 	}
 
 
@@ -171,13 +160,10 @@ function Blob(){
 		if(this.sleeping)return;
 
 		this.touchCount += 1;
+
 		if(this.touchCount > this.maxTouchCount)
 		{
-			this.touchCount = 0;
-			this.sleeping = true;
-			this.release = this.options.tweetRel * 1000;
-			this.releaseCount = this.release;
-			Meteor.call('blobPing', this.options); // sound options will go here
+			this.reset();
 		}
 
 		this.growth = Math.max(0.001, Math.min(1.0,this.touchCount/this.maxTouchCount));
@@ -186,6 +172,38 @@ function Blob(){
 		this.resetPoints();
 
 
+	}
+
+	this.reset = function(){
+
+		this.touchCount = 0;
+		this.sleeping = true;
+
+		//these come from the old options
+		this.release = this.options.tweetRel * 1000;
+		this.releaseCount = this.release;
+
+		Meteor.call('blobPing', this.options); //trigger the sound
+
+		//this was just for debugging
+	/*this.options = {
+
+	    amp: 1,
+	    pan:  Math.random() * 1.5 * 0.75,
+	    tweetRel: 2.0 + Math.random() * 6.0,
+		tweetMul: Math.random(),
+		tweetAdd: 66 + Math.random() * 40,
+		combMul: Math.random(),
+		shotDec: 0.01 + Math.pow(Math.random(),2) * 0.5,
+	    splay: 0
+
+	  }*/
+
+	  	//now get the new options
+		this.options = blobOptions; 
+		//TODO: unhack this
+		this.maxTouchCount = this.options.maxTouches;
+		
 	}
 
 	this.draw = function(ctx){

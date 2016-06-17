@@ -86,11 +86,12 @@ Meteor.startup(function(){
 
 	}
 
-	if(!Presets.findOne({type: "blob", name: "df"})){
-		console.log("creating blob defaults");
+	if(!Presets.findOne({type: "balloons", name: "df"})){
+		console.log("creating balloon defaults");
 		//create one
 		var p = {
 
+			maxTouches: 100,
 		    amp: 1,
 		    pan:  0,
 		    tweetRel: 5.0,
@@ -98,11 +99,12 @@ Meteor.startup(function(){
 			tweetAdd: 95,
 			combMul: 0.5,
 			shotDec: 0.5,
+			reset: true,
 		    splay: 0
 
 		  }
 
-		 Presets.insert({type: "blob", name: "df", options: p});
+		 Presets.insert({type: "balloons", name: "df", options: p});
 
 	}
 
