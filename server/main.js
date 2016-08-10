@@ -168,14 +168,18 @@ msgStream  = new Meteor.Stream('msgStream');
 
 msgStream.permissions.write(function(eventName) {
 
+
 	if(eventName == "message"){
 
 		return checkAdmin(this.userId);
 
 	}else if(eventName == "userMessage"){
 
-		return !checkAdmin(this.userId);
+		return checkPlayer(this.userId);
 
+	}else if (eventName == "displayMessage") {
+
+		return true;
 	}
 
 });
@@ -197,7 +201,9 @@ msgStream.permissions.read(function(eventName, args) {
 			 }
 			
 		}else if(eventName == "userMessage"){
-			return true;
+			return checkPlayer(this.userId);
+		}else if(eventName == "displayMessage"){
+			return checkDisplay(this.userId);
 		}
 	}
 
@@ -419,7 +425,7 @@ Meteor.methods({
 			args: args
 	  	});
 
-	  	console.log(args);
+	  	//console.log(args);
 
 	  	udp.send(buf, 0, buf.length, port, host);
 
@@ -427,67 +433,7 @@ Meteor.methods({
 	},
 
 
-	numPing:function(options) { 
-
-		//console.log(options);
-
-		var buf = osc.toBuffer({
-			address: "/hit",
-			args: [options.num, options.voice, options.vol, options.pan]
-	  	});
-
-	  	udp.send(buf, 0, buf.length, port, host);
-		
-	},
-
-	onOffPing:function(options) { 
-
-		//console.log(options);
-
-		if(options.msg == 'on'){
-
-			if(options.synth == 'playWithTone'){
-				var buf = osc.toBuffer({
-					address: "/noteOn",
-					args: [
-						options.voice, 
-						options.synth, 
-						options.v_volume, 
-						options.s_volume, 
-						options.pan, 
-						options.freq, 
-						options.noiseFreq
-					]
-			  	});
-			}else{
-				var buf = osc.toBuffer({
-					address: "/noteOn",
-					args: [
-						options.voice, 
-						options.synth, 
-						options.v_volume, 
-						options.s_volume, 
-						options.pan, 
-						options.trigRate, 
-						options.envDur,
-						options.endPosR
-					]
-			  	});
-
-			}	
-
-		}else{
-
-			var buf = osc.toBuffer({
-				address: "/noteOff",
-				args: [options.voice, options.volume, options.pan]
-		  	});
-
-		}
-
-	  	udp.send(buf, 0, buf.length, port, host);
-		
-	},
+	
 
 	resetPlayers:function(userId){
 
@@ -534,4 +480,32 @@ function checkAdmin(userId){
 	}
 	
 }
+
+function checkDisplay(userId)
+{
+	var user = Meteor.users.findOne(userId);
+	if(!user)return false;
+	if(user.profile.role == "display"){
+		return true;
+	}else{
+		//throw new Meteor.Error("insufficient admin rights");
+		return false;
+	}
+
+}
+
+function checkPlayer(userId)
+{
+	var user = Meteor.users.findOne(userId);
+	if(!user)return false;
+	if(user.profile.role == "player"){
+		return true;
+	}else{
+		//throw new Meteor.Error("insufficient admin rights");
+		return false;
+	}
+
+}
+
+
 
